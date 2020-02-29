@@ -1,15 +1,19 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from socket_ import Socket, LEFT_TOP, LEFT_BOTTOM, RIGHT_BOTTOM, RIGHT_TOP
+from socket_ import *
 
+DEBUG = True
 
 class GraphicNode(QGraphicsItem):
     def __init__(self, node, parent=None):
         super().__init__(parent)
+        self.node = node
+        self.content = self.node.content
 
         self._title_color = Qt.white
-        self._title_font = QFont("Ubuntu", 12)
+        self._title_font = QFont("Ubuntu", 10)
+
 
         self.width = 120
         self.height = 120
@@ -24,12 +28,30 @@ class GraphicNode(QGraphicsItem):
         self._brush_background = QBrush(QColor("#E3212121"))
 
         self.init_title()
-
-        self.node = node
-        self.content = self.node.content
+        self.title = self.node.title
         self.init_sockets()
         self.init_content()
+
         self.initUI()
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+
+        # optimize me! just update the selected nodes
+        for node in self.scene().scene.nodes:
+            if node.graphic_node.isSelected():
+                node.updateConnectedEdges()
+
+    def mouseDoubleClickEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
+        print("double clicked")
+
+    @property
+    def title(self): return self._title
+    @title.setter
+    def title(self, value):
+        self._title = value
+        self.title_item.setPlainText(self._title)
+
 
     def boundingRect(self):
         return QRectF(
@@ -43,8 +65,10 @@ class GraphicNode(QGraphicsItem):
         self.setFlag(QGraphicsItem.ItemIsSelectable)
         self.setFlag(QGraphicsItem.ItemIsMovable)
 
+
     def init_title(self):
         self.title_item = QGraphicsTextItem(self)
+        self.title_item.node = self.node
         self.title_item.setDefaultTextColor(self._title_color)
         self.title_item.setFont(self._title_font)
         self.title_item.setPos(self._padding, 0)
@@ -53,31 +77,23 @@ class GraphicNode(QGraphicsItem):
             - 2 * self._padding
         )
 
+    def init_content(self):
+        self.grContent = QGraphicsProxyWidget(self)
+        self.content.setGeometry(self.edge_size, self.title_height + self.edge_size,
+                                 self.width - 2*self.edge_size, self.height - 2*self.edge_size-self.title_height)
+        self.grContent.setWidget(self.content)
+
+
     def init_sockets(self):
         pass
 
-    def init_content(self):
-        self.graphic_content = QGraphicsProxyWidget(self)
-        self.content.setGeometry(self.edge_size, self.title_height + self.edge_size,
-                                    self.width - 2*self.edge_size,
-                                    self.height - 2*self.edge_size-self.title_height)
 
-        self.graphic_content.setWidget(self.content)
-
-    @property
-    def title(self):
-        return self._title
-
-    @title.setter
-    def title(self, value):
-        self._title = value
-        self.title_item.setPlainText(self._title)
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         # title
         path_title = QPainterPath()
         path_title.setFillRule(Qt.WindingFill)
-        path_title.addRoundedRect(0, 0, self.width, self.title_height, self.edge_size, self.edge_size)
+        path_title.addRoundedRect(0,0, self.width, self.title_height, self.edge_size, self.edge_size)
         path_title.addRect(0, self.title_height - self.edge_size, self.edge_size, self.edge_size)
         path_title.addRect(self.width - self.edge_size, self.title_height - self.edge_size, self.edge_size, self.edge_size)
         painter.setPen(Qt.NoPen)
@@ -103,16 +119,10 @@ class GraphicNode(QGraphicsItem):
         painter.setBrush(Qt.NoBrush)
         painter.drawPath(path_outline.simplified())
 
-    def mouseMoveEvent(self, event):
-        super().mouseMoveEvent(event)
-        self.node.update_connected_edges()
-        print("mouse move event")
-
-    def mouseDoubleClickEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
-        print("double clicked")
 
 class NodeContent(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, node, parent=None):
+        self.node = node
         super().__init__(parent)
 
         self.initUI()
@@ -122,78 +132,83 @@ class NodeContent(QWidget):
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
         label = QLabel()
-        #label.setStyleSheet("background-color: rgba(0,0,0,0%)")
-        #label.setAttribute(Qt.WA_TranslucentBackground)
+        # label.setStyleSheet("background-color: rgba(0,0,0,0%)")
+        # label.setAttribute(Qt.WA_TranslucentBackground)
         pixmap = QPixmap("fish.png")
         label.setPixmap(pixmap.scaled(60, 60, Qt.KeepAspectRatio))
         self.layout.addWidget(label)
 
 
 class Node:
-    def __init__(self, scene, title="Untitled", inputs=None, outputs=None):
+    def __init__(self, scene, title="Undefined Node", inputs=None, outputs=None):
+        self.scene = scene
+
+        self.title = title
         if outputs is None:
             outputs = []
         if inputs is None:
             inputs = []
-        self.scene = scene
-
-        self.title = title
-        self.content = NodeContent()
+        self.content = NodeContent(self)
         self.graphic_node = GraphicNode(self)
-        self.graphic_node.title = title
 
-        #self.graphic_node.
         self.scene.add_node(self)
-        self.scene.graphic_scene.addItem(self.graphic_node)
+        self.scene.grScene.addItem(self.graphic_node)
 
         self.socket_spacing = 22
 
-        if not inputs:
-            inputs = []
-
-        if not outputs:
-            outputs = []
-
+        # create socket for inputs and outputs
         self.inputs = []
         self.outputs = []
-
         counter = 0
         for item in inputs:
-            socket = Socket(node=self, index=counter, position=LEFT_BOTTOM)
+            socket = Socket(node=self, index=counter, position=LEFT_BOTTOM, socket_type=item)
             counter += 1
             self.inputs.append(socket)
 
         counter = 0
         for item in outputs:
-            socket = Socket(node=self, index=counter, position=RIGHT_TOP)
+            socket = Socket(node=self, index=counter, position=RIGHT_TOP, socket_type=item)
             counter += 1
             self.outputs.append(socket)
+
+    def __str__(self):
+        return "<Node %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
+
+    @property
+    def pos(self):
+        return self.graphic_node.pos()        # QPointF
+    def setPos(self, x, y):
+        self.graphic_node.setPos(x, y)
 
     def get_socket_position(self, index, position):
         x = 0 if (position in (LEFT_TOP, LEFT_BOTTOM)) else self.graphic_node.width
 
         if position in (LEFT_BOTTOM, RIGHT_BOTTOM):
             # start from bottom
-            #y = self.graphic_node.height - self.graphic_node.edge_size - self.graphic_node._padding - index * self.socket_spacing
-            y = self.graphic_node.height / 2
-        else:
+            y = self.graphic_node.height - self.graphic_node.edge_size - self.graphic_node._padding - index * self.socket_spacing
+        else :
             # start from top
-            #y = self.graphic_node.title_height + self.graphic_node._padding + self.graphic_node.edge_size + index * self.socket_spacing
-            y = self.graphic_node.height / 2
+            y = self.graphic_node.title_height + self.graphic_node._padding + self.graphic_node.edge_size + index * self.socket_spacing
 
         return [x, y]
 
-    def update_connected_edges(self):
+
+    def updateConnectedEdges(self):
         for socket in self.inputs + self.outputs:
-            #whether the socket has an edge
-            if socket.edge:
+            if socket.has_edge():
                 socket.edge.updatePositions()
 
-    @property
-    def pos(self):
-        return self.graphic_node.pos()  # QPointF
 
-    def setPos(self, x, y):
-        self.graphic_node.setPos(x, y)
-
-
+    def remove(self):
+        if DEBUG: print("> Removing Node", self)
+        if DEBUG: print(" - remove all edges from sockets")
+        for socket in (self.inputs+self.outputs):
+            if socket.has_edge():
+                if DEBUG: print("    - removing from socket:", socket, "edge:", socket.edge)
+                socket.edge.remove()
+        if DEBUG: print(" - remove graphic_node")
+        self.scene.grScene.removeItem(self.graphic_node)
+        self.graphic_node = None
+        if DEBUG: print(" - remove node.py from the scene")
+        self.scene.remove_node(self)
+        if DEBUG: print(" - everything was done.")

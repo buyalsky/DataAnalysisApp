@@ -1,29 +1,30 @@
-import sys
-from PyQt5 import QtWidgets as qtw
-from PyQt5 import QtGui as qtg
-from PyQt5 import QtCore as qtc
 import math
+from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
 
 
-class GraphicScene(qtw.QGraphicsScene):
-
+class GraphicScene(QGraphicsScene):
     def __init__(self, scene, parent=None):
         super().__init__(parent)
+
         self.scene = scene
 
+        # settings
         self.gridSize = 20
         self.gridSquares = 5
 
-        self._color_background = qtg.QColor("#ffffff")
-        self._color_light = qtg.QColor("#d9d8d7")
-        self._color_dark = qtg.QColor("#bcbbba")
+        self._color_background = QColor("#ffffff")
+        self._color_light = QColor("#d9d8d7")
+        self._color_dark = QColor("#bcbbba")
 
-        self._pen_light = qtg.QPen(self._color_light)
+        self._pen_light = QPen(self._color_light)
         self._pen_light.setWidth(1)
-        self._pen_dark = qtg.QPen(self._color_dark)
+        self._pen_dark = QPen(self._color_dark)
         self._pen_dark.setWidth(2)
 
         self.setBackgroundBrush(self._color_background)
+
 
     def set_graphic_scene(self, width, height):
         self.setSceneRect(-width // 2, -height // 2, width, height)
@@ -31,6 +32,7 @@ class GraphicScene(qtw.QGraphicsScene):
     def drawBackground(self, painter, rect):
         super().drawBackground(painter, rect)
 
+        # here we create our grid
         left = int(math.floor(rect.left()))
         right = int(math.ceil(rect.right()))
         top = int(math.floor(rect.top()))
@@ -42,17 +44,13 @@ class GraphicScene(qtw.QGraphicsScene):
         # compute all lines to be drawn
         lines_light, lines_dark = [], []
         for x in range(first_left, right, self.gridSize):
-            if (x % (self.gridSize * self.gridSquares) != 0):
-                lines_light.append(qtc.QLine(x, top, x, bottom))
-
-            else:
-                lines_dark.append(qtc.QLine(x, top, x, bottom))
+            if (x % (self.gridSize*self.gridSquares) != 0): lines_light.append(QLine(x, top, x, bottom))
+            else: lines_dark.append(QLine(x, top, x, bottom))
 
         for y in range(first_top, bottom, self.gridSize):
-            if (y % (self.gridSize * self.gridSquares) != 0):
-                lines_light.append(qtc.QLine(left, y, right, y))
-            else:
-                lines_dark.append(qtc.QLine(left, y, right, y))
+            if (y % (self.gridSize*self.gridSquares) != 0): lines_light.append(QLine(left, y, right, y))
+            else: lines_dark.append(QLine(left, y, right, y))
+
 
         # draw the lines
         painter.setPen(self._pen_light)
@@ -73,8 +71,8 @@ class Scene:
         self.initUI()
 
     def initUI(self):
-        self.graphic_scene = GraphicScene(self)
-        self.graphic_scene.set_graphic_scene(self.scene_width, self.scene_height)
+        self.grScene = GraphicScene(self)
+        self.grScene.set_graphic_scene(self.scene_width, self.scene_height)
 
     def add_node(self, node):
         self.nodes.append(node)
@@ -87,3 +85,5 @@ class Scene:
 
     def remove_edge(self, edge):
         self.edges.remove(edge)
+
+
