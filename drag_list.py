@@ -25,7 +25,7 @@ class DragList(QListWidget):
         self.addMyItems()
 
     def addMyItems(self):
-        self.addMyItem("Node 1", "crimson_sharks.png", OP_NODE_INPUT)
+        self.addMyItem("Csv Loader", "crimson_sharks.png", OP_NODE_INPUT)
         self.addMyItem("Node 2", "crimson_sharks.png", OP_NODE_OUTPUT)
         self.addMyItem("Node 3", "crimson_sharks.png", OP_NODE_ADD)
         self.addMyItem("Node 4", "crimson_sharks.png", OP_NODE_SUB)

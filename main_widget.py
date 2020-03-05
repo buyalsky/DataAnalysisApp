@@ -2,6 +2,7 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
+from nodes.input_nodes import CsvLoader
 from scene import Scene
 from node import Node
 from edge import Edge, EDGE_TYPE_BEZIER
@@ -17,8 +18,10 @@ OP_NODE_DIV = 6
 
 
 class MainWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent_window=None, parent=None):
         super().__init__(parent)
+        if parent_window:
+            self.parent_window = parent_window
 
         self.stylesheet_filename = 'qss/nodestyle.qss'
         self.loadStylesheet(self.stylesheet_filename)
@@ -133,10 +136,15 @@ class MainWidget(QWidget):
             print("GOT DROP: [%d] '%s'" % (op_code, text), "mouse:", mouse_position, "scene:", scene_position)
 
             # @TODO Fix me!
-            node = Node(self.scene, text, inputs=[1, 1], outputs=[2])
+            #node = Node(self.scene, text, inputs=1, outputs=1)
+            if text == "Csv Loader":
+                node = CsvLoader(self.scene)
+            else:
+                node = Node(self.scene, text, inputs=1, outputs=1)
             node.setPos(scene_position.x(), scene_position.y())
             self.scene.add_node(node)
             self.nodes.append(node)
+            self.parent_window.change_statusbar_text()
 
             event.setDropAction(Qt.MoveAction)
             event.accept()

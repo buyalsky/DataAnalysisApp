@@ -24,7 +24,7 @@ class MainWindow(QMainWindow): # change to mainwindow
         # The central widget #
         ######################
         #self.textedit = QTextEdit()
-        self.main_widget = MainWidget()
+        self.main_widget = MainWidget(parent_window=self)
         self.setCentralWidget(self.main_widget)
 
         #################
@@ -40,9 +40,9 @@ class MainWindow(QMainWindow): # change to mainwindow
         self.statusBar().showMessage('Ready')
 
         # add widgets to statusbar
-        charcount_label = QLabel("chars: 0")
+        self.statusbar_label = QLabel("chars: 0")
 
-        self.statusBar().addPermanentWidget(charcount_label)
+        self.statusBar().addPermanentWidget(self.statusbar_label)
 
         ###############j
         # The menubar #
@@ -254,9 +254,11 @@ class MainWindow(QMainWindow): # change to mainwindow
             self.main_widget.setCurrentFont(font)
 
     def show_settings(self):
-
         settings_dialog = SettingsDialog(self.settings, self)
         settings_dialog.exec()
+
+    def change_statusbar_text(self):
+        self.statusbar_label.setText(str(len(self.main_widget.nodes)))
 
 
 class SettingsDialog(QDialog):
@@ -287,6 +289,7 @@ class SettingsDialog(QDialog):
         )
         print(self.settings.value('show_warnings'))
         super().accept()
+
 
 
 if __name__ == '__main__':

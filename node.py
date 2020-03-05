@@ -46,7 +46,7 @@ class GraphicNode(QGraphicsItem):
                 node.updateConnectedEdges()
 
     def mouseDoubleClickEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
-        print(self.node.title)
+        self.node.run()
 
     @property
     def title(self): return self._title
@@ -143,14 +143,11 @@ class NodeContent(QWidget):
 
 
 class Node:
-    def __init__(self, scene, title="Undefined Node", inputs=None, outputs=None):
+    def __init__(self, scene, title="Undefined Node", inputs=0, outputs=0):
         self.scene = scene
 
         self.title = title
-        if outputs is None:
-            outputs = []
-        if inputs is None:
-            inputs = []
+
         self.content = NodeContent(self)
         self.graphic_node = GraphicNode(self)
 
@@ -163,19 +160,22 @@ class Node:
         self.inputs = []
         self.outputs = []
         counter = 0
-        for item in inputs:
+        for item in range(inputs):
             socket = Socket(node=self, index=counter, position=LEFT_BOTTOM, socket_type=item)
             counter += 1
             self.inputs.append(socket)
 
         counter = 0
-        for item in outputs:
+        for item in range(outputs):
             socket = Socket(node=self, index=counter, position=RIGHT_TOP, socket_type=item)
             counter += 1
             self.outputs.append(socket)
 
     def __str__(self):
         return "<Node %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
+
+    def run(self):
+        print("node")
 
     @property
     def pos(self):
