@@ -29,6 +29,9 @@ class GraphicScene(QGraphicsScene):
     def set_graphic_scene(self, width, height):
         self.setSceneRect(-width // 2, -height // 2, width, height)
 
+    def dragMoveEvent(self, QGraphicsSceneDragDropEvent):
+        pass
+
     def drawBackground(self, painter, rect):
         super().drawBackground(painter, rect)
 
@@ -61,18 +64,22 @@ class GraphicScene(QGraphicsScene):
 
 
 class Scene:
-    def __init__(self, width=64000, height=64000):
+    def __init__(self, parent_widget=None, width=64000, height=64000):
         self.nodes = []
         self.edges = []
-
+        self.parent_widget = parent_widget
         self.scene_width = width
         self.scene_height = height
+
+        self._has_been_modified_listeners = []
+        self._item_selected_listeners = []
+        self._items_deselected_listeners = []
 
         self.initUI()
 
     def initUI(self):
-        self.grScene = GraphicScene(self)
-        self.grScene.set_graphic_scene(self.scene_width, self.scene_height)
+        self.graphic_scene = GraphicScene(self)
+        self.graphic_scene.set_graphic_scene(self.scene_width, self.scene_height)
 
     def add_node(self, node):
         self.nodes.append(node)
@@ -85,5 +92,15 @@ class Scene:
 
     def remove_edge(self, edge):
         self.edges.remove(edge)
+
+    def addDragEnterListener(self, callback):
+        self.graphic_scene.views()[0].addDragEnterListener(callback)
+
+    def addDropListener(self, callback):
+        self.graphic_scene.views()[0].addDropListener(callback)
+
+    def addHasBeenModifiedListener(self, callback):
+        self._has_been_modified_listeners.append(callback)
+
 
 

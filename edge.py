@@ -3,12 +3,14 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from socket_ import *
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 EDGE_CP_ROUNDNESS = 100
 EDGE_TYPE_DIRECT = 1
 EDGE_TYPE_BEZIER = 2
-
-DEBUG = False
 
 
 class Edge:
@@ -23,29 +25,28 @@ class Edge:
         if self.end_socket is not None:
             self.end_socket.edge = self
 
-        self.grEdge = QDMGraphicsEdgeDirect(self) if edge_type == EDGE_TYPE_DIRECT else QDMGraphicsEdgeBezier(self)
+        self.graphic_edge = GraphicEdgeDirect(self) if edge_type == EDGE_TYPE_DIRECT else GraphicEdgeBezier(self)
 
-        self.updatePositions()
-        self.scene.grScene.addItem(self.grEdge)
+        self.update_positions()
+        self.scene.graphic_scene.addItem(self.graphic_edge)
         self.scene.add_edge(self)
 
     def __str__(self):
         return "<Edge %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
 
-
-    def updatePositions(self):
+    def update_positions(self):
         source_pos = self.start_socket.get_socket_position()
         source_pos[0] += self.start_socket.node.graphic_node.pos().x()
         source_pos[1] += self.start_socket.node.graphic_node.pos().y()
-        self.grEdge.setSource(*source_pos)
+        self.graphic_edge.setSource(*source_pos)
         if self.end_socket is not None:
             end_pos = self.end_socket.get_socket_position()
             end_pos[0] += self.end_socket.node.graphic_node.pos().x()
             end_pos[1] += self.end_socket.node.graphic_node.pos().y()
-            self.grEdge.setDestination(*end_pos)
+            self.graphic_edge.setDestination(*end_pos)
         else:
-            self.grEdge.setDestination(*source_pos)
-        self.grEdge.update()
+            self.graphic_edge.setDestination(*source_pos)
+        self.graphic_edge.update()
 
 
     def remove_from_sockets(self):
@@ -56,23 +57,27 @@ class Edge:
         self.end_socket = None
         self.start_socket = None
 
-
+    "removes edges from nodes"
     def remove(self):
-        if DEBUG: print("# Removing Edge", self)
-        if DEBUG: print(" - remove edge from all sockets")
+        logger.debug("# Removing Edge {}".format(self))
+        logger.debug(" - remove edge from all sockets")
         self.remove_from_sockets()
-        if DEBUG: print(" - remove grEdge")
-        self.scene.grScene.removeItem(self.grEdge)
-        self.grEdge = None
-        if DEBUG: print(" - remove edge from scene")
+        logger.debug(" - remove grEdge")
+        self.scene.graphic_scene.removeItem(self.graphic_edge)
+        self.graphic_edge = None
+        logger.debug(" - remove edge from scene")
         try:
             self.scene.remove_edge(self)
         except ValueError:
             pass
-        if DEBUG: print(" - everything is done.")
+        logger.debug(" - everything is done.")
+        try:
+            self.scene.parent_widget.edges.remove(self)
+        except ValueError:
+            pass
 
 
-class QDMGraphicsEdge(QGraphicsPathItem):
+class GraphicEdge(QGraphicsPathItem):
     def __init__(self, edge, parent=None):
         super().__init__(parent)
 
@@ -123,14 +128,14 @@ class QDMGraphicsEdge(QGraphicsPathItem):
         raise NotImplemented("This method has to be overriden in a child class")
 
 
-class QDMGraphicsEdgeDirect(QDMGraphicsEdge):
+class GraphicEdgeDirect(GraphicEdge):
     def calc_path(self):
         path = QPainterPath(QPointF(self.posSource[0], self.posSource[1]))
         path.lineTo(self.posDestination[0], self.posDestination[1])
         return path
 
 
-class QDMGraphicsEdgeBezier(QDMGraphicsEdge):
+class GraphicEdgeBezier(GraphicEdge):
     def calc_path(self):
         s = self.posSource
         d = self.posDestination

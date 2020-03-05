@@ -2,6 +2,10 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
+import logging
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 LEFT_TOP = 1
 LEFT_BOTTOM = 2
@@ -9,7 +13,6 @@ RIGHT_TOP = 3
 RIGHT_BOTTOM = 4
 
 
-DEBUG = False
 
 
 class Socket:
@@ -20,7 +23,7 @@ class Socket:
         self.position = position
         self.socket_type = socket_type
 
-        if DEBUG: print("Socket -- creating with", self.index, self.position, "for node.py", self.node)
+        logging.debug("Socket -- creating with {} {} for node {}".format(self.index, self.position, self.node))
 
 
         self.graphic_socket = GraphicSocket(self, self.socket_type)
@@ -34,9 +37,9 @@ class Socket:
 
 
     def get_socket_position(self):
-        if DEBUG: print("  GSP: ", self.index, self.position, "node.py:", self.node)
+        logging.debug("  GSP: {} {} node: {}".format(self.index, self.position, self.node))
         res = self.node.get_socket_position(self.index, self.position)
-        if DEBUG: print("  res", res)
+        logging.debug("  res {}".format(res))
         return res
 
 
@@ -45,6 +48,7 @@ class Socket:
 
     def has_edge(self):
         return self.edge is not None
+
 
 class GraphicSocket(QGraphicsItem):
     def __init__(self, socket, socket_type=1):

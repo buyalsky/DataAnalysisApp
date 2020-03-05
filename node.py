@@ -2,8 +2,11 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from socket_ import *
+import logging
 
-DEBUG = True
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+
 
 class GraphicNode(QGraphicsItem):
     def __init__(self, node, parent=None):
@@ -43,7 +46,7 @@ class GraphicNode(QGraphicsItem):
                 node.updateConnectedEdges()
 
     def mouseDoubleClickEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
-        print("double clicked")
+        print(self.node.title)
 
     @property
     def title(self): return self._title
@@ -152,7 +155,7 @@ class Node:
         self.graphic_node = GraphicNode(self)
 
         self.scene.add_node(self)
-        self.scene.grScene.addItem(self.graphic_node)
+        self.scene.graphic_scene.addItem(self.graphic_node)
 
         self.socket_spacing = 22
 
@@ -185,10 +188,12 @@ class Node:
 
         if position in (LEFT_BOTTOM, RIGHT_BOTTOM):
             # start from bottom
-            y = self.graphic_node.height - self.graphic_node.edge_size - self.graphic_node._padding - index * self.socket_spacing
+            #y = self.graphic_node.height - self.graphic_node.edge_size - self.graphic_node._padding - index * self.socket_spacing
+            y = self.graphic_node.height // 2
         else :
             # start from top
-            y = self.graphic_node.title_height + self.graphic_node._padding + self.graphic_node.edge_size + index * self.socket_spacing
+            #y = self.graphic_node.title_height + self.graphic_node._padding + self.graphic_node.edge_size + index * self.socket_spacing
+            y = self.graphic_node.height // 2
 
         return [x, y]
 
@@ -196,19 +201,23 @@ class Node:
     def updateConnectedEdges(self):
         for socket in self.inputs + self.outputs:
             if socket.has_edge():
-                socket.edge.updatePositions()
+                socket.edge.update_positions()
 
 
     def remove(self):
-        if DEBUG: print("> Removing Node", self)
-        if DEBUG: print(" - remove all edges from sockets")
+        logger.debug("> Removing Node {}".format(self))
+        logger.debug(" - remove all edges from sockets")
         for socket in (self.inputs+self.outputs):
             if socket.has_edge():
-                if DEBUG: print("    - removing from socket:", socket, "edge:", socket.edge)
+                logger.debug("    - removing from socket: {} edge: {}".format(socket, socket.edge))
                 socket.edge.remove()
-        if DEBUG: print(" - remove graphic_node")
-        self.scene.grScene.removeItem(self.graphic_node)
+        logger.debug(" - remove graphic_node")
+        self.scene.graphic_scene.removeItem(self.graphic_node)
         self.graphic_node = None
-        if DEBUG: print(" - remove node.py from the scene")
+        logger.debug(" - remove node.py from the scene")
         self.scene.remove_node(self)
-        if DEBUG: print(" - everything was done.")
+        try:
+            self.scene.parent_widget.nodes.remove(self)
+        except ValueError:
+            pass
+        logger.debug(" - everything was done.")

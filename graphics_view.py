@@ -1,13 +1,15 @@
 from PyQt5.QtWidgets import QGraphicsView, QApplication
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-
+import logging
 
 from socket_ import GraphicSocket
-from edge import QDMGraphicsEdge
+from edge import GraphicEdge
 from edge import Edge, EDGE_TYPE_BEZIER
 from cutter_line import CutLine
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 MODE_NOOP = 1
 MODE_EDGE_DRAG = 2
@@ -16,13 +18,13 @@ MODE_EDGE_CUT = 3
 EDGE_DRAG_START_THRESHOLD = 10
 
 
-DEBUG = True
 
 
 class QDMGraphicsView(QGraphicsView):
-    def __init__(self, grScene, parent=None):
+    def __init__(self, graphic_scene, parent=None):
         super().__init__(parent)
-        self.graphic_scene = grScene
+        self.graphic_scene = graphic_scene
+        self.parent_widget = parent
 
         self.initUI()
 
@@ -41,6 +43,9 @@ class QDMGraphicsView(QGraphicsView):
         self.cutline = CutLine()
         self.graphic_scene.addItem(self.cutline)
 
+        # listeners
+        self._drag_enter_listeners = []
+        self._drop_listeners = []
 
     def initUI(self):
         self.setRenderHints(QPainter.Antialiasing | QPainter.HighQualityAntialiasing | QPainter.TextAntialiasing | QPainter.SmoothPixmapTransform)
@@ -50,6 +55,19 @@ class QDMGraphicsView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
         self.setDragMode(QGraphicsView.RubberBandDrag)
 
+    def dragEnterEvent(self, event):
+        for callback in self._drag_enter_listeners:
+            callback(event)
+
+    def dropEvent(self, event):
+        for callback in self._drop_listeners:
+            callback(event)
+
+    def addDragEnterListener(self, callback):
+        self._drag_enter_listeners.append(callback)
+
+    def addDropListener(self, callback):
+        self._drop_listeners.append(callback)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MiddleButton:
@@ -97,10 +115,10 @@ class QDMGraphicsView(QGraphicsView):
         # we store the position of last LMB click
         self.last_lmb_click_scene_pos = self.mapToScene(event.pos())
 
-        if DEBUG: print("LMB Click on", item, self.debug_modifiers(event))
+        logger.debug("LMB Click on {} {}".format(item, self.debug_modifiers(event)))
 
         # logic
-        if hasattr(item, "node.py") or isinstance(item, QDMGraphicsEdge) or item is None:
+        if hasattr(item, "node.py") or isinstance(item, GraphicEdge) or item is None:
             if event.modifiers() & Qt.ShiftModifier:
                 event.ignore()
                 fakeEvent = QMouseEvent(QEvent.MouseButtonPress, event.localPos(), event.screenPos(),
@@ -137,7 +155,7 @@ class QDMGraphicsView(QGraphicsView):
         item = self.getItemAtClick(event)
 
         # logic
-        if hasattr(item, "node.py") or isinstance(item, QDMGraphicsEdge) or item is None:
+        if hasattr(item, "node.py") or isinstance(item, GraphicEdge) or item is None:
             if event.modifiers() & Qt.ShiftModifier:
                 event.ignore()
                 fakeEvent = QMouseEvent(event.type(), event.localPos(), event.screenPos(),
@@ -169,17 +187,21 @@ class QDMGraphicsView(QGraphicsView):
 
         item = self.getItemAtClick(event)
 
-        if DEBUG:
-            if isinstance(item, QDMGraphicsEdge): print('RMB DEBUG:', item.edge, ' connecting sockets:',
-                                            item.edge.start_socket, '<-->', item.edge.end_socket)
-            if type(item) is GraphicSocket: print('RMB DEBUG:', item.socket, 'has edge:', item.socket.edge)
 
-            if item is None:
-                print('SCENE:')
-                print('  Nodes:')
-                for node in self.graphic_scene.scene.nodes: print('    ', node)
-                print('  Edges:')
-                for edge in self.graphic_scene.scene.edges: print('    ', edge)
+        if isinstance(item, GraphicEdge):
+            logger.debug('RMB DEBUG:', item.edge, ' connecting sockets:', item.edge.start_socket, '<-->'
+                          , item.edge.end_socket)
+        if type(item) is GraphicSocket:
+            logger.debug('RMB DEBUG:', item.socket, 'has edge:', item.socket.edge)
+
+        if item is None:
+            logger.debug('SCENE:')
+            logger.debug('  Nodes:')
+            for node in self.graphic_scene.scene.nodes:
+                logger.debug('    {}'.format(node))
+            logger.debug('  Edges:')
+            for edge in self.graphic_scene.scene.edges:
+                logger.debug('    {}'.format(edge))
 
 
     def rightMouseButtonRelease(self, event):
@@ -189,8 +211,8 @@ class QDMGraphicsView(QGraphicsView):
     def mouseMoveEvent(self, event):
         if self.mode == MODE_EDGE_DRAG:
             pos = self.mapToScene(event.pos())
-            self.dragEdge.grEdge.setDestination(pos.x(), pos.y())
-            self.dragEdge.grEdge.update()
+            self.dragEdge.graphic_edge.setDestination(pos.x(), pos.y())
+            self.dragEdge.graphic_edge.update()
 
         if self.mode == MODE_EDGE_CUT:
             pos = self.mapToScene(event.pos())
@@ -216,15 +238,15 @@ class QDMGraphicsView(QGraphicsView):
             p2 = self.cutline.line_points[ix + 1]
 
             for edge in self.graphic_scene.scene.edges:
-                if edge.grEdge.intersects_with(p1, p2):
+                if edge.graphic_edge.intersects_with(p1, p2):
                     edge.remove()
 
 
     def deleteSelected(self):
         for item in self.graphic_scene.selectedItems():
-            if isinstance(item, QDMGraphicsEdge):
+            if isinstance(item, GraphicEdge):
                 item.edge.remove()
-            elif hasattr(item, 'node.py'):
+            elif hasattr(item, 'node'):
                 item.node.remove()
 
 
@@ -244,41 +266,48 @@ class QDMGraphicsView(QGraphicsView):
 
 
     def edgeDragStart(self, item):
-        if DEBUG: print('View::edgeDragStart ~ Start dragging edge')
-        if DEBUG: print('View::edgeDragStart ~   assign Start Socket to:', item.socket)
+        logger.debug('View::edgeDragStart ~ Start dragging edge')
+        logger.debug('View::edgeDragStart ~   assign Start Socket to:'.format(item.socket))
         self.previousEdge = item.socket.edge
         self.last_start_socket = item.socket
+
         self.dragEdge = Edge(self.graphic_scene.scene, item.socket, None, EDGE_TYPE_BEZIER)
-        if DEBUG: print('View::edgeDragStart ~   dragEdge:', self.dragEdge)
+        logger.debug('View::edgeDragStart ~   dragEdge:'.format(self.dragEdge))
 
-
+    # called when we append an edge
     def edgeDragEnd(self, item):
-        """ return True if skip the rest of the code """
         self.mode = MODE_NOOP
 
-        if type(item) is GraphicSocket:
+        if isinstance(item, GraphicSocket):
             if item.socket != self.last_start_socket:
-                if DEBUG: print('View::edgeDragEnd ~   previous edge:', self.previousEdge)
+                logger.debug('View::edgeDragEnd ~   previous edge: {}'.format(self.previousEdge))
                 if item.socket.has_edge():
                     item.socket.edge.remove()
-                if DEBUG: print('View::edgeDragEnd ~   assign End Socket', item.socket)
-                if self.previousEdge is not None: self.previousEdge.remove()
-                if DEBUG: print('View::edgeDragEnd ~  previous edge removed')
+                logger.debug('View::edgeDragEnd ~   assign End Socket {}'.format(item.socket))
+                if self.previousEdge is not None:
+                    self.previousEdge.remove()
+                logger.debug('View::edgeDragEnd ~  previous edge removed')
+
                 self.dragEdge.start_socket = self.last_start_socket
                 self.dragEdge.end_socket = item.socket
                 self.dragEdge.start_socket.set_connected_edge(self.dragEdge)
                 self.dragEdge.end_socket.set_connected_edge(self.dragEdge)
-                if DEBUG: print('View::edgeDragEnd ~  reassigned start & end sockets to drag edge')
-                self.dragEdge.updatePositions()
+
+                logger.debug('View::edgeDragEnd ~  reassigned start & end sockets to drag edge')
+
+                logger.debug(type(self.dragEdge))
+                self.parent_widget.edges.append(self.dragEdge)
+                self.dragEdge.update_positions()
                 return True
 
-        if DEBUG: print('View::edgeDragEnd ~ End dragging edge')
+        logger.debug('View::edgeDragEnd ~ End dragging edge')
+
         self.dragEdge.remove()
         self.dragEdge = None
-        if DEBUG: print('View::edgeDragEnd ~ about to set socket to previous edge:', self.previousEdge)
+        logger.debug('View::edgeDragEnd ~ about to set socket to previous edge: {}'.format(self.previousEdge))
         if self.previousEdge is not None:
             self.previousEdge.start_socket.edge = self.previousEdge
-        if DEBUG: print('View::edgeDragEnd ~ everything done.')
+        logger.debug('View::edgeDragEnd ~ everything done.')
 
         return False
 
