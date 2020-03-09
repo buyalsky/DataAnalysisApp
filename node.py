@@ -145,6 +145,7 @@ class NodeContent(QWidget):
 class Node:
     def __init__(self, scene, title="Undefined Node", inputs=0, outputs=0):
         self.scene = scene
+        self.is_finished = False
 
         self.title = title
 
@@ -155,6 +156,9 @@ class Node:
         self.scene.graphic_scene.addItem(self.graphic_node)
 
         self.socket_spacing = 22
+
+        self.is_first = False
+        self.is_last = False
 
         # create socket for inputs and outputs
         self.inputs = []
@@ -197,12 +201,10 @@ class Node:
 
         return [x, y]
 
-
     def updateConnectedEdges(self):
         for socket in self.inputs + self.outputs:
             if socket.has_edge():
                 socket.edge.update_positions()
-
 
     def remove(self):
         logger.debug("> Removing Node {}".format(self))

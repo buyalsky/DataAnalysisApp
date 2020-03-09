@@ -40,7 +40,7 @@ class MainWindow(QMainWindow): # change to mainwindow
         self.statusBar().showMessage('Ready')
 
         # add widgets to statusbar
-        self.statusbar_label = QLabel("chars: 0")
+        self.statusbar_label = QLabel("0")
 
         self.statusBar().addPermanentWidget(self.statusbar_label)
 
@@ -108,37 +108,43 @@ class MainWindow(QMainWindow): # change to mainwindow
         )
         toolbar.addAction(help_action)
 
-        # create a toolbar in another part of the screen:
-        #toolbar2 = QToolBar('Edit')
-        #self.addToolBar(Qt.RightToolBarArea, toolbar2)
-        #toolbar2.addAction('Copy', self.textedit.copy)
-        #toolbar2.addAction('Cut', self.textedit.cut)
-        #toolbar2.addAction('Paste', self.textedit.paste)
-
         dock = QDockWidget("Tools")
-        dock_inner_widget = QWidget(self)
-        nodes_list_widget = DragList()
+        dock_inputs_widget = QWidget(self)
+        dock_both_inputs_and_outputs_widget = QWidget(self)
+        dock_outputs_widget = QWidget(self)
+
+        nodes_list_inputs = DragList()
+        nodes_list_both_inputs_and_outputs = DragList()
+        nodes_list_outputs = DragList()
+
+        nodes_list_inputs.add_my_items(['Csv Loader', 'Excel Loader', 'Item 3', 'Item 4'])
+        nodes_list_both_inputs_and_outputs.add_my_items(['Naive Bayes Classify', 'Knn', 'SVM', "Decision Tree"])
+        nodes_list_outputs.add_my_items(["Text output", "Scatter plot", "Histogram"])
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
-        dock_layout = QHBoxLayout()
+        dock_layout_input = QHBoxLayout()
+        dock_layout_input_output = QHBoxLayout()
+        dock_layout_output = QHBoxLayout()
         tab_widget = QTabWidget(
             movable=False,
             tabPosition=QTabWidget.West,
             tabShape=QTabWidget.TabShape
         )
         tab_widget.resize(100,100)
-        container = QWidget(self)
-        subwidget = QWidget(self)
-        dock_inner_widget.setLayout(dock_layout)
-        #dock_layout.addWidget(tab_widget)
-        dock_layout.addWidget(nodes_list_widget)
 
-        tab_widget.addTab(dock_inner_widget, 'Tab 1')
-        tab_widget.addTab(subwidget, 'Tab 2')
+        dock_inputs_widget.setLayout(dock_layout_input)
+        dock_both_inputs_and_outputs_widget.setLayout(dock_layout_input_output)
+        dock_outputs_widget.setLayout(dock_layout_output)
+        #dock_layout.addWidget(tab_widget)
+
+        dock_layout_input.addWidget(nodes_list_inputs)
+        dock_layout_input_output.addWidget(nodes_list_both_inputs_and_outputs)
+        dock_layout_output.addWidget(nodes_list_outputs)
+
+        tab_widget.addTab(dock_inputs_widget, 'Tab 1')
+        tab_widget.addTab(dock_both_inputs_and_outputs_widget, 'Tab 2')
+        tab_widget.addTab(dock_outputs_widget, 'Tab 3')
 
         dock.setWidget(tab_widget)
-
-
-        search_and_replace_btn = QPushButton("Print path", clicked=self.print_paths)
 
         # QMessageBox
         help_menu.addAction('About', self.showAboutDialog)
@@ -197,10 +203,16 @@ class MainWindow(QMainWindow): # change to mainwindow
     def print_paths(self):
         print(self.main_widget)
         print(self.main_widget.nodes)
-        print("there is " + str(len(self.main_widget.nodes)) + "nodes exist on the scene")
+        print("there is " + str(len(self.main_widget.nodes)) + " nodes exist on the scene")
         for edge in self.main_widget.edges:
             print("from " + edge.start_socket.node.title + " to " + edge.end_socket.node.title)
 
+    def order_path(self):
+        for node in self.main_widget.nodes:
+            if node.is_first:
+                first_node = node
+            if node.is_last:
+                last_node = node
 
     def showAboutDialog(self):
         QMessageBox.about(
@@ -258,7 +270,11 @@ class MainWindow(QMainWindow): # change to mainwindow
         settings_dialog.exec()
 
     def change_statusbar_text(self):
-        self.statusbar_label.setText(str(len(self.main_widget.nodes)))
+        completed_count = 0
+        for node in self.main_widget.nodes:
+            if node.is_finished:
+                completed_count += 1
+        self.statusbar_label.setText("{}/{}".format(completed_count, len(self.main_widget.nodes)))
 
 
 class SettingsDialog(QDialog):

@@ -248,6 +248,7 @@ class QDMGraphicsView(QGraphicsView):
                 item.edge.remove()
             elif hasattr(item, 'node'):
                 item.node.remove()
+                self.parent_widget.parent_window.change_statusbar_text()
 
 
 

@@ -2,7 +2,9 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-from nodes.input_nodes import CsvLoader
+from nodes.input_nodes import *
+from nodes.both_input_and_output import *
+from nodes.output_nodes import *
 from scene import Scene
 from node import Node
 from edge import Edge, EDGE_TYPE_BEZIER
@@ -139,6 +141,14 @@ class MainWidget(QWidget):
             #node = Node(self.scene, text, inputs=1, outputs=1)
             if text == "Csv Loader":
                 node = CsvLoader(self.scene)
+            elif text == "Excel Loader":
+                node = ExcelLoader(self.scene)
+            elif text == "Text output":
+                node = TextOutput(self.scene)
+            elif text == "Scatter plot":
+                node = ScatterPlot(self.scene)
+            elif text == "Histogram":
+                node = Histogram(self.scene)
             else:
                 node = Node(self.scene, text, inputs=1, outputs=1)
             node.setPos(scene_position.x(), scene_position.y())
