@@ -145,6 +145,14 @@ class MainWidget(QWidget):
                 node = ExcelLoader(self.scene)
             elif text == "Text output":
                 node = TextOutput(self.scene)
+            elif text == "Naive Bayes Classify":
+                node = NaiveBayesClassify(self.scene)
+            elif text == "Knn":
+                node = Knn(self.scene)
+            elif text == "Decision Tree":
+                node = DecisionTree(self.scene)
+            elif text == "SVM":
+                node = SVM(self.scene)
             elif text == "Scatter plot":
                 node = ScatterPlot(self.scene)
             elif text == "Histogram":

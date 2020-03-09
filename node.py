@@ -160,7 +160,15 @@ class Node:
         self.is_first = False
         self.is_last = False
 
-        # create socket for inputs and outputs
+        self.input_socket = None
+        self.output_socket = None
+
+        if inputs:
+            self.input_socket = Socket(node=self, index=0, position=LEFT_BOTTOM, socket_type=0)
+        if outputs:
+            self.output_socket = Socket(node=self, index=0, position=RIGHT_TOP, socket_type=0)
+
+        """
         self.inputs = []
         self.outputs = []
         counter = 0
@@ -174,6 +182,7 @@ class Node:
             socket = Socket(node=self, index=counter, position=RIGHT_TOP, socket_type=item)
             counter += 1
             self.outputs.append(socket)
+        """
 
     def __str__(self):
         return "<Node %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
@@ -202,17 +211,20 @@ class Node:
         return [x, y]
 
     def updateConnectedEdges(self):
-        for socket in self.inputs + self.outputs:
-            if socket.has_edge():
-                socket.edge.update_positions()
+        if self.input_socket and self.input_socket.has_edge():
+            self.input_socket.edge.update_positions()
+        if self.output_socket and self.output_socket.has_edge():
+            self.output_socket.edge.update_positions()
 
     def remove(self):
         logger.debug("> Removing Node {}".format(self))
         logger.debug(" - remove all edges from sockets")
-        for socket in (self.inputs+self.outputs):
-            if socket.has_edge():
-                logger.debug("    - removing from socket: {} edge: {}".format(socket, socket.edge))
-                socket.edge.remove()
+        if self.input_socket and self.input_socket.has_edge():
+            logger.debug("    - removing from socket: {} edge: {}".format(self.input_socket, self.input_socket.edge))
+            self.input_socket.edge.remove()
+        if self.output_socket and self.output_socket.has_edge():
+            logger.debug("    - removing from socket: {} edge: {}".format(self.output_socket, self.output_socket.edge))
+            self.output_socket.edge.remove()
         logger.debug(" - remove graphic_node")
         self.scene.graphic_scene.removeItem(self.graphic_node)
         self.graphic_node = None

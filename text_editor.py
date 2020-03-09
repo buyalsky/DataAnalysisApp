@@ -206,14 +206,27 @@ class MainWindow(QMainWindow): # change to mainwindow
         print("there is " + str(len(self.main_widget.nodes)) + " nodes exist on the scene")
         for edge in self.main_widget.edges:
             print("from " + edge.start_socket.node.title + " to " + edge.end_socket.node.title)
+        self.order_path()
 
     def order_path(self):
+        first_node = None
+        last_node = None
+        self.ordered_nodes = []
         for node in self.main_widget.nodes:
             if node.is_first:
                 first_node = node
             if node.is_last:
                 last_node = node
 
+        assert first_node is not None and last_node is not None
+        self.ordered_nodes.append(first_node)
+
+        while len(self.ordered_nodes) < len(self.main_widget.nodes) -1:
+            self.ordered_nodes.append(self.ordered_nodes[-1].output_socket.edge.end_socket.node)
+        self.ordered_nodes.append(last_node)
+        print("printing the ordered nodes")
+        for node in self.ordered_nodes:
+            print(node.title)
     def showAboutDialog(self):
         QMessageBox.about(
             self,

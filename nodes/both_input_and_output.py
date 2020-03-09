@@ -67,6 +67,26 @@ class AttributeRemover(Node):
         self.df = df
 
 
+class NaiveBayesClassify(Node):
+    def __init__(self, scene):
+        super().__init__(scene, title="Naive Bayes Classify", inputs=1, outputs=1)
+
+
+class Knn(Node):
+    def __init__(self, scene):
+        super().__init__(scene, title="Knn", inputs=1, outputs=1)
+
+
+class SVM(Node):
+    def __init__(self, scene):
+        super().__init__(scene, title="SVM", inputs=1, outputs=1)
+
+
+class DecisionTree(Node):
+    def __init__(self, scene):
+        super().__init__(scene, title="Decision Tree", inputs=1, outputs=1)
+
+
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     pencere = AttributeRemover()
