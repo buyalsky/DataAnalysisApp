@@ -109,40 +109,69 @@ class MainWindow(QMainWindow): # change to mainwindow
         toolbar.addAction(help_action)
 
         dock = QDockWidget("Tools")
-        dock_inputs_widget = QWidget(self)
-        dock_both_inputs_and_outputs_widget = QWidget(self)
-        dock_outputs_widget = QWidget(self)
 
-        nodes_list_inputs = DragList()
-        nodes_list_both_inputs_and_outputs = DragList()
-        nodes_list_outputs = DragList()
+        dock_loaders_widget = QWidget(self)
+        dock_preprocess_widget = QWidget(self)
+        dock_regression_widget = QWidget(self)
+        dock_classification_widget = QWidget(self)
+        dock_clustering_widget = QWidget(self)
+        dock_visualization_widget = QWidget(self)
 
-        nodes_list_inputs.add_my_items(['Csv Loader', 'Excel Loader', 'Item 3', 'Item 4'])
-        nodes_list_both_inputs_and_outputs.add_my_items(['Naive Bayes Classify', 'Knn', 'SVM', "Decision Tree"])
-        nodes_list_outputs.add_my_items(["Text output", "Scatter plot", "Histogram"])
+
+        nodes_list_loaders = DragList()
+        nodes_list_preprocess = DragList()
+        nodes_list_regression = DragList()
+        nodes_list_classification = DragList()
+        nodes_list_clustering = DragList()
+        nodes_list_visualization = DragList()
+
+        nodes_list_loaders.add_my_items(['Csv Loader', 'Excel Loader'])
+        nodes_list_preprocess.add_my_items(['Attribute Remover', 'Filter'])
+        nodes_list_regression.add_my_items(['Linear Regression'])
+        nodes_list_classification.add_my_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree', 'Decision Tree'])
+        nodes_list_clustering.add_my_items(['K-means', "Hierarchical"])
+        nodes_list_visualization.add_my_items(["Text output", "Scatter plot", "Histogram"])
+
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
-        dock_layout_input = QHBoxLayout()
-        dock_layout_input_output = QHBoxLayout()
-        dock_layout_output = QHBoxLayout()
+
         tab_widget = QTabWidget(
             movable=False,
             tabPosition=QTabWidget.West,
             tabShape=QTabWidget.TabShape
         )
-        tab_widget.resize(100,100)
+        tab_widget.resize(100, 100)
 
-        dock_inputs_widget.setLayout(dock_layout_input)
-        dock_both_inputs_and_outputs_widget.setLayout(dock_layout_input_output)
-        dock_outputs_widget.setLayout(dock_layout_output)
+        dock_layout_loaders = QHBoxLayout()
+        dock_layout_preprocess = QHBoxLayout()
+        dock_layout_regression = QHBoxLayout()
+        dock_layout_classification = QHBoxLayout()
+        dock_layout_clustering = QHBoxLayout()
+        dock_layout_visualization = QHBoxLayout()
+
+
+        dock_loaders_widget.setLayout(dock_layout_loaders)
+        dock_preprocess_widget.setLayout(dock_layout_preprocess)
+        dock_regression_widget.setLayout(dock_layout_regression)
+        dock_classification_widget.setLayout(dock_layout_classification)
+        dock_clustering_widget.setLayout(dock_layout_clustering)
+        dock_visualization_widget.setLayout(dock_layout_visualization)
+
         #dock_layout.addWidget(tab_widget)
 
-        dock_layout_input.addWidget(nodes_list_inputs)
-        dock_layout_input_output.addWidget(nodes_list_both_inputs_and_outputs)
-        dock_layout_output.addWidget(nodes_list_outputs)
+        dock_layout_loaders.addWidget(nodes_list_loaders)
+        dock_layout_preprocess.addWidget(nodes_list_preprocess)
+        dock_layout_regression.addWidget(nodes_list_regression)
+        dock_layout_classification.addWidget(nodes_list_classification)
+        dock_layout_clustering.addWidget(nodes_list_clustering)
+        dock_layout_visualization.addWidget(nodes_list_visualization)
 
-        tab_widget.addTab(dock_inputs_widget, 'Tab 1')
-        tab_widget.addTab(dock_both_inputs_and_outputs_widget, 'Tab 2')
-        tab_widget.addTab(dock_outputs_widget, 'Tab 3')
+
+        tab_widget.addTab(dock_loaders_widget, 'Tab 1')
+        tab_widget.addTab(dock_preprocess_widget, 'Tab 2')
+        tab_widget.addTab(dock_regression_widget, 'Tab 3')
+        tab_widget.addTab(dock_classification_widget, 'Tab 4')
+        tab_widget.addTab(dock_clustering_widget, 'Tab 5')
+        tab_widget.addTab(dock_visualization_widget, 'Tab 6')
 
         dock.setWidget(tab_widget)
 
@@ -227,6 +256,7 @@ class MainWindow(QMainWindow): # change to mainwindow
         print("printing the ordered nodes")
         for node in self.ordered_nodes:
             print(node.title)
+
     def showAboutDialog(self):
         QMessageBox.about(
             self,

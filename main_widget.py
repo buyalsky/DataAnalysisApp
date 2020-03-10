@@ -143,6 +143,8 @@ class MainWidget(QWidget):
                 node = CsvLoader(self.scene)
             elif text == "Excel Loader":
                 node = ExcelLoader(self.scene)
+            elif text == "Attribute Remover":
+                node = AttributeRemover(self.scene)
             elif text == "Text output":
                 node = TextOutput(self.scene)
             elif text == "Naive Bayes Classify":

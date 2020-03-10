@@ -6,14 +6,23 @@ import pandas as pd
 sys.path.append(os.path.abspath(os.path.join("..")))
 from node import Node
 
+
 class AttributeRemover(Node):
     def __init__(self, scene):
         super().__init__(scene, title="Attribute Remover", inputs=1, outputs=1)
+        self.df = None
 
         #self.df = pd.read_csv("C:/Users/Burak/OneDrive/Masaüstü/Python/Demo Machine Learning/column_2C_weka.csv")
 
 
     def run(self):
+        if not self.df:
+            QMessageBox.about(
+                self.scene.parent_widget,
+                "Warning!",
+                "You need to complete prior nodes first."
+            )
+            return
         self.dialog = QDialog()
         self.dialog.setWindowFlags(Qt.WindowTitleHint)
         self.setupUI(self.dialog)
