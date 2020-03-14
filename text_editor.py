@@ -40,7 +40,7 @@ class MainWindow(QMainWindow): # change to mainwindow
         self.statusBar().showMessage('Ready')
 
         # add widgets to statusbar
-        self.statusbar_label = QLabel("0")
+        self.statusbar_label = QLabel("0/0")
 
         self.statusBar().addPermanentWidget(self.statusbar_label)
 
@@ -236,6 +236,9 @@ class MainWindow(QMainWindow): # change to mainwindow
         for edge in self.main_widget.edges:
             print("from " + edge.start_socket.node.title + " to " + edge.end_socket.node.title)
         self.order_path()
+        print("printing the ordered nodes")
+        for node in self.ordered_nodes:
+            print(node.title)
 
     def order_path(self):
         first_node = None
@@ -253,9 +256,11 @@ class MainWindow(QMainWindow): # change to mainwindow
         while len(self.ordered_nodes) < len(self.main_widget.nodes) -1:
             self.ordered_nodes.append(self.ordered_nodes[-1].output_socket.edge.end_socket.node)
         self.ordered_nodes.append(last_node)
-        print("printing the ordered nodes")
-        for node in self.ordered_nodes:
-            print(node.title)
+
+    def feed_next_node(self, node):
+        i = self.ordered_nodes.index(node)
+        self.ordered_nodes[i+1].feed(node.output)
+
 
     def showAboutDialog(self):
         QMessageBox.about(
@@ -318,6 +323,7 @@ class MainWindow(QMainWindow): # change to mainwindow
             if node.is_finished:
                 completed_count += 1
         self.statusbar_label.setText("{}/{}".format(completed_count, len(self.main_widget.nodes)))
+
 
 
 class SettingsDialog(QDialog):

@@ -132,14 +132,24 @@ class CsvLoader(Node):
                               decimal=options[2], encoding=options[3])
         print(self.df.head(10))
 
+    @property
+    def output(self):
+        return self.df
+
     def return_file(self):
         self.dialog.accept()
         if isinstance(self.df, pd.core.frame.DataFrame):
             self.is_finished = True
             print("completed")
-        else:
-            print("not completed")
+            self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
+            #order the nodes
+            self.graphic_node.scene().scene.parent_widget.parent_window.order_path()
+            #feed the next node
+            self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
 
+        else:
+            self.is_finished = False
+            print("not completed")
 
     def evaluate(self):
         pass

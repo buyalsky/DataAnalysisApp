@@ -82,6 +82,7 @@ class Scene:
         self.graphic_scene.set_graphic_scene(self.scene_width, self.scene_height)
 
     def add_node(self, node):
+        print("node added")
         self.nodes.append(node)
 
     def add_edge(self, edge):

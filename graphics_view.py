@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QGraphicsView, QApplication
+from PyQt5.QtWidgets import QGraphicsView, QApplication, QMessageBox
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import logging
@@ -231,7 +231,6 @@ class QDMGraphicsView(QGraphicsView):
         else:
             super().keyPressEvent(event)
 
-
     def cutIntersectingEdges(self):
         for ix in range(len(self.cutline.line_points) - 1):
             p1 = self.cutline.line_points[ix]
@@ -241,16 +240,15 @@ class QDMGraphicsView(QGraphicsView):
                 if edge.graphic_edge.intersects_with(p1, p2):
                     edge.remove()
 
-
     def deleteSelected(self):
-        for item in self.graphic_scene.selectedItems():
-            if isinstance(item, GraphicEdge):
-                item.edge.remove()
-            elif hasattr(item, 'node'):
-                item.node.remove()
-                self.parent_widget.parent_window.change_statusbar_text()
-
-
+        response = QMessageBox.question(self,'', "Are you sure to remove selected nodes?", QMessageBox.Yes | QMessageBox.No)
+        if response == QMessageBox.Yes:
+            for item in self.graphic_scene.selectedItems():
+                if isinstance(item, GraphicEdge):
+                    item.edge.remove()
+                elif hasattr(item, 'node'):
+                    item.node.remove()
+                    self.parent_widget.parent_window.change_statusbar_text()
 
     def debug_modifiers(self, event):
         out = "MODS: "

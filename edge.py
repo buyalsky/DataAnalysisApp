@@ -59,18 +59,15 @@ class Edge:
 
     "removes edges from nodes"
     def remove(self):
-        logger.debug("# Removing Edge {}".format(self))
+        logger.debug(" Removing Edge {}".format(self))
         logger.debug(" - remove edge from all sockets")
         self.remove_from_sockets()
-        logger.debug(" - remove grEdge")
         self.scene.graphic_scene.removeItem(self.graphic_edge)
         self.graphic_edge = None
-        logger.debug(" - remove edge from scene")
         try:
             self.scene.remove_edge(self)
         except ValueError:
             pass
-        logger.debug(" - everything is done.")
         try:
             self.scene.parent_widget.edges.remove(self)
         except ValueError:

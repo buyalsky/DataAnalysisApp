@@ -162,7 +162,7 @@ class MainWidget(QWidget):
             else:
                 node = Node(self.scene, text, inputs=1, outputs=1)
             node.setPos(scene_position.x(), scene_position.y())
-            self.scene.add_node(node)
+            #self.scene.add_node(node)
             self.nodes.append(node)
             self.parent_window.change_statusbar_text()
 

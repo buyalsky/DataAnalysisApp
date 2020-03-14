@@ -39,7 +39,7 @@ class GraphicNode(QGraphicsItem):
 
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)
-
+        # print(len(self.scene().scene.nodes))
         # optimize me! just update the selected nodes
         for node in self.scene().scene.nodes:
             if node.graphic_node.isSelected():
@@ -47,6 +47,7 @@ class GraphicNode(QGraphicsItem):
 
     def mouseDoubleClickEvent(self, event: 'QGraphicsSceneMouseEvent') -> None:
         self.node.run()
+        #self.node.scene.parent_widget.change_statusbar_text()
 
     @property
     def title(self): return self._title
@@ -155,7 +156,7 @@ class Node:
         self.scene.add_node(self)
         self.scene.graphic_scene.addItem(self.graphic_node)
 
-        self.socket_spacing = 22
+        #self.socket_spacing = 22
 
         self.is_first = False
         self.is_last = False
@@ -167,22 +168,6 @@ class Node:
             self.input_socket = Socket(node=self, index=0, position=LEFT_BOTTOM, socket_type=0)
         if outputs:
             self.output_socket = Socket(node=self, index=0, position=RIGHT_TOP, socket_type=0)
-
-        """
-        self.inputs = []
-        self.outputs = []
-        counter = 0
-        for item in range(inputs):
-            socket = Socket(node=self, index=counter, position=LEFT_BOTTOM, socket_type=item)
-            counter += 1
-            self.inputs.append(socket)
-
-        counter = 0
-        for item in range(outputs):
-            socket = Socket(node=self, index=counter, position=RIGHT_TOP, socket_type=item)
-            counter += 1
-            self.outputs.append(socket)
-        """
 
     def __str__(self):
         return "<Node %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
