@@ -125,7 +125,7 @@ class MainWindow(QMainWindow): # change to mainwindow
         nodes_list_clustering = DragList()
         nodes_list_visualization = DragList()
 
-        nodes_list_loaders.add_my_items(['Csv Loader', 'Excel Loader'])
+        nodes_list_loaders.add_my_items(['Csv Loader', 'Excel Loader', "Xml Loader"])
         nodes_list_preprocess.add_my_items(['Attribute Remover', 'Filter'])
         nodes_list_regression.add_my_items(['Linear Regression'])
         nodes_list_classification.add_my_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree', 'Decision Tree'])

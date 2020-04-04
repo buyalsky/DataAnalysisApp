@@ -14,7 +14,7 @@ class AttributeRemover(Node):
     def __init__(self, scene):
         super().__init__(scene, title="Attribute Remover", inputs=1, outputs=1)
         self.df = None
-
+        self.node_type = "filter.attribute"
         # self.df = pd.read_csv("C:/Users/Burak/OneDrive/Masaüstü/Python/Demo Machine Learning/column_2C_weka.csv")
 
     def run(self):
@@ -102,12 +102,14 @@ class AttributeRemover(Node):
 class NaiveBayesClassify(Node):
     def __init__(self, scene):
         super().__init__(scene, title="Naive Bayes Classify", inputs=1, outputs=1)
+        self.node_type = "supervised.naivebayes"
 
 
 class Knn(Node):
     def __init__(self, scene):
         super().__init__(scene, title="Knn", inputs=1, outputs=1)
         self.df = None
+        self.node_type = "supervised.knn"
 
     def run(self):
         if not isinstance(self.df, pd.core.frame.DataFrame):
@@ -237,11 +239,13 @@ class Knn(Node):
 class SVM(Node):
     def __init__(self, scene):
         super().__init__(scene, title="SVM", inputs=1, outputs=1)
+        self.node_type = "supervised.svm"
 
 
 class DecisionTree(Node):
     def __init__(self, scene):
         super().__init__(scene, title="Decision Tree", inputs=1, outputs=1)
+        self.node_type = "supervised.decisiontree"
 
 
 if __name__ == "__main__":

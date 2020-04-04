@@ -158,6 +158,8 @@ class Node:
 
         #self.socket_spacing = 22
 
+        self.node_type = ""
+
         self.is_first = False
         self.is_last = False
 
@@ -178,6 +180,7 @@ class Node:
     @property
     def pos(self):
         return self.graphic_node.pos()        # QPointF
+
     def setPos(self, x, y):
         self.graphic_node.setPos(x, y)
 

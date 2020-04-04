@@ -5,12 +5,14 @@ from PyQt5.QtCore import *
 import pandas as pd
 sys.path.append(os.path.abspath(os.path.join("..")))
 from node import Node
+import xml.etree.ElementTree as ET
 
 
 class CsvLoader(Node):
     def __init__(self, scene):
         super().__init__(scene, title="Csv Loader", inputs=0, outputs=1)
         self.is_first = True
+        self.node_type = "loader.csv"
 
     def run(self):
         print("calusuyor")
@@ -18,6 +20,7 @@ class CsvLoader(Node):
         self.dialog = QDialog()
         self.setupUI(self.dialog)
         self.dialog.show()
+
 
     def setupUI(self, Dialog):
         Dialog.setObjectName("Dialog")
@@ -98,6 +101,7 @@ class CsvLoader(Node):
         self.buttonBox.accepted.connect(self.return_file)
         self.buttonBox.rejected.connect(Dialog.reject)
         self.pushButton.clicked.connect(self.file_select_clicked)
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
         QMetaObject.connectSlotsByName(Dialog)
 
     def retranslateUi(self, Dialog):
@@ -125,7 +129,8 @@ class CsvLoader(Node):
         print("clicked")
         if not self.fname[0]:
             return
-
+        else:
+            self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(True)
 
     @property
     def output(self):
@@ -160,6 +165,7 @@ class ExcelLoader(Node):
     def __init__(self, scene):
         super().__init__(scene, title="Excel Loader", inputs=0, outputs=1)
         self.is_first = True
+        self.node_type = "loader.excel"
 
     def run(self):
         print("calusuyor")
@@ -235,3 +241,189 @@ class ExcelLoader(Node):
 
     def evaluate(self):
         pass
+
+
+class XmlLoader(Node):
+    def __init__(self, scene):
+        super().__init__(scene, title="Xml Loader", inputs=0, outputs=1)
+        self.is_first = True
+        self.node_type = "loader.xml"
+
+    def run(self):
+        print("calusuyor")
+        self.df = None
+        self.dialog = QDialog()
+        self.setupUI(self.dialog)
+        self.dialog.show()
+
+    def setupUI(self, Dialog):
+        Dialog.setObjectName("Dialog")
+        Dialog.resize(461, 509)
+        self.widget = QWidget(Dialog)
+        self.widget.setGeometry(QRect(30, 40, 401, 421))
+        self.widget.setObjectName("widget")
+        self.verticalLayout_2 = QVBoxLayout(self.widget)
+        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.label = QLabel(self.widget)
+        self.label.setObjectName("label")
+        self.horizontalLayout.addWidget(self.label)
+        self.lineEdit = QLineEdit(self.widget)
+        self.lineEdit.setObjectName("lineEdit")
+        self.horizontalLayout.addWidget(self.lineEdit)
+        self.pushButton = QPushButton(self.widget)
+        self.pushButton.setObjectName("pushButton")
+        self.horizontalLayout.addWidget(self.pushButton)
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
+        self.verticalLayout = QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.tree_widget = QTreeWidget(self.widget)
+        self.tree_widget.setObjectName("treeWidget")
+
+        self.verticalLayout.addWidget(self.tree_widget)
+        self.buttonBox = QDialogButtonBox(self.widget)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName("buttonBox")
+        self.verticalLayout.addWidget(self.buttonBox)
+        self.verticalLayout_2.addLayout(self.verticalLayout)
+
+        self.retranslateUi(Dialog)
+        self.buttonBox.accepted.connect(self.print_current)
+        self.buttonBox.rejected.connect(Dialog.reject)
+        self.pushButton.clicked.connect(self.file_select_clicked)
+        QMetaObject.connectSlotsByName(Dialog)
+
+    def retranslateUi(self, Dialog):
+        _translate = QCoreApplication.translate
+        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.label.setText(_translate("Dialog", "Dosya seç"))
+        self.pushButton.setText(_translate("Dialog", "PushButton"))
+        self.tree_widget.headerItem().setText(0, _translate("Dialog", "1"))
+
+    def create_dataframe(self):
+        self.data = {}
+        for option in self.selected_options:
+            self.data[option.text(0)] = []
+        print(self.data)
+
+        tree = ET.parse(self.fname[0])
+        root = tree.getroot()
+
+        for child in root:
+            if child.tag == self.top_parent_item.text(0):
+                if len(child)>0:
+                    self.add_data_element(child)
+                elif child.tag in [option.text(0) for option in self.selected_options]:
+                    self.data[child.tag].append(child.text)
+        print(self.data)
+        self.df = pd.DataFrame(self.data, columns=[option.text(0) for option in self.selected_options])
+        print(self.df.head(10))
+
+    def add_data_element(self, root):
+        for child in root:
+            if len(child)>0:
+                self.add_data_element(child)
+            elif child.tag in [option.text(0) for option in self.selected_options]:
+                self.data[child.tag].append(child.text)
+
+
+    def print_current(self):
+        self.selected_options = []
+        print("printing the selected options")
+        for option in self.options:
+            if option.checkState(0) == Qt.Checked:
+                self.selected_options.append(option)
+                print(self.selected_options[-1].text(0))
+        print(self.check_validity())
+        self.create_dataframe()
+
+    def check_validity(self):
+        self.top_parent_item = self.top_parent(self.selected_options[0])
+        for option in self.selected_options:
+            print(self.top_parent(option).text(0))
+            if option.checkState(0) == Qt.Checked and self.top_parent_item.text(0) != self.top_parent(option).text(0):
+                return False
+        return True
+
+    def top_parent(self, tree_widget_item):
+        if not tree_widget_item.parent():
+            return None
+        parent_item = tree_widget_item.parent()
+        while parent_item.parent():
+            parent_item = parent_item.parent()
+        return parent_item
+
+    def file_select_clicked(self):
+        print("clicked")
+        self.fname = QFileDialog.getOpenFileName(QWidget(), "Open File", "C:/", "Xml files (*.xml)")
+        print("clicked")
+        if not self.fname[0]:
+            return
+        self.main2()
+
+    def return_file(self):
+        self.dialog.accept()
+        print(type(self.df))
+        if isinstance(self.df, pd.core.frame.DataFrame):
+            self.is_finished = True
+            print("completed")
+            self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
+            # order the nodes
+            self.graphic_node.scene().scene.parent_widget.parent_window.order_path()
+            # feed the next node
+            self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
+        else:
+            print("not completed")
+
+    @property
+    def output(self):
+        return self.df
+
+    def evaluate(self):
+        pass
+
+    def main2(self):
+        tree = ET.parse(self.fname[0])
+        root = tree.getroot()
+
+        #child = root[0]
+        self.options = []
+        self.create_tree(root, self.tree_widget)
+
+    def create_tree(self, root, tree_widget):
+        a = set([child.tag for child in root])
+        print(a)
+
+        for child in root:
+            if not a:
+                break
+            if child.tag in a:
+                parent = QTreeWidgetItem(tree_widget)
+                parent.setText(0, child.tag)
+                print(parent.text(0))
+                parent.setFlags(parent.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
+                self.create_sub_tree(child, parent)
+                a.remove(child.tag)
+
+
+
+        print(len(self.options))
+        for option in self.options:
+            print(option.text(0))
+
+    def create_sub_tree(self, root, parent):
+        for x in root:
+            child = QTreeWidgetItem(parent)
+            if len(x) == 0:
+                child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
+                self.options.append(child)
+            else:
+                child.setFlags(child.flags() | Qt.ItemIsTristate | Qt.ItemIsUserCheckable)
+            child.setText(0, x.tag)
+            child.setCheckState(0, Qt.Unchecked)
+            if len(x) > 0:
+                self.create_sub_tree(x, child)
+

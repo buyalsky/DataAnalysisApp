@@ -159,6 +159,8 @@ class MainWidget(QWidget):
                 node = ScatterPlot(self.scene)
             elif text == "Histogram":
                 node = Histogram(self.scene)
+            elif text == "Xml Loader":
+                node = XmlLoader(self.scene)
             else:
                 node = Node(self.scene, text, inputs=1, outputs=1)
             node.setPos(scene_position.x(), scene_position.y())
