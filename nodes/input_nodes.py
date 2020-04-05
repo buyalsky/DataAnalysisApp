@@ -107,8 +107,8 @@ class CsvLoader(Node):
     def retranslateUi(self, Dialog):
         _translate = QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label.setText(_translate("Dialog", "Dosya seç"))
-        self.pushButton.setText(_translate("Dialog", "Seç"))
+        self.label.setText(_translate("Dialog", "Select file"))
+        self.pushButton.setText(_translate("Dialog", "Select"))
         self.label_2.setText(_translate("Dialog", "Ayraç"))
         self.comboBox.setItemText(0, _translate("Dialog", "Virgül"))
         self.comboBox.setItemText(1, _translate("Dialog", "Noktalı Virgül"))
@@ -207,8 +207,8 @@ class ExcelLoader(Node):
     def retranslateUi(self, Dialog):
         _translate = QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label.setText(_translate("Dialog", "Dosya seç"))
-        self.pushButton.setText(_translate("Dialog", "Seç"))
+        self.label.setText(_translate("Dialog", "Select file"))
+        self.pushButton.setText(_translate("Dialog", "Select"))
 
 
     def file_select_clicked(self):
@@ -233,6 +233,7 @@ class ExcelLoader(Node):
             # feed the next node
             self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
         else:
+            self.is_finished = False
             print("not completed")
 
     @property
@@ -299,7 +300,7 @@ class XmlLoader(Node):
     def retranslateUi(self, Dialog):
         _translate = QCoreApplication.translate
         Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label.setText(_translate("Dialog", "Dosya seç"))
+        self.label.setText(_translate("Dialog", "Select File"))
         self.pushButton.setText(_translate("Dialog", "PushButton"))
         self.tree_widget.headerItem().setText(0, _translate("Dialog", "1"))
 
@@ -321,6 +322,36 @@ class XmlLoader(Node):
         print(self.data)
         self.df = pd.DataFrame(self.data, columns=[option.text(0) for option in self.selected_options])
         print(self.df.head(10))
+        # convert columns to best possible data type
+        for column in self.df:
+            none_count = 0
+            int_count = 0
+            float_count = 0
+            total_count = 0
+            if self.df[column].dtype == "object":
+                for value in self.df[column].values:
+                    if not value or value == "None" or value == "NaN":
+                        print("Type of none value: {}".format(type(value)))
+                        value = None
+                        none_count += 1
+                    else:
+                        try:
+                            int(value)
+                            int_count += 1
+                        except ValueError:
+                            try:
+                                float(value)
+                                float_count += 1
+                            except ValueError:
+                                pass
+                    total_count += 1
+                print("For {}, none_count: {}, int_count: {}, float_count: {}, total_count: {}"
+                      .format(column, none_count, int_count, float_count, total_count))
+
+            if int_count == total_count:
+                self.df[column] = self.df[column].astype(int)
+            elif float_count + none_count == total_count or int_count + none_count == total_count:
+                self.df[column] = self.df[column].astype(float)
 
     def add_data_element(self, root):
         for child in root:
@@ -328,7 +359,6 @@ class XmlLoader(Node):
                 self.add_data_element(child)
             elif child.tag in [option.text(0) for option in self.selected_options]:
                 self.data[child.tag].append(child.text)
-
 
     def print_current(self):
         self.selected_options = []
@@ -339,6 +369,7 @@ class XmlLoader(Node):
                 print(self.selected_options[-1].text(0))
         print(self.check_validity())
         self.create_dataframe()
+        self.return_file()
 
     def check_validity(self):
         self.top_parent_item = self.top_parent(self.selected_options[0])
@@ -357,9 +388,7 @@ class XmlLoader(Node):
         return parent_item
 
     def file_select_clicked(self):
-        print("clicked")
         self.fname = QFileDialog.getOpenFileName(QWidget(), "Open File", "C:/", "Xml files (*.xml)")
-        print("clicked")
         if not self.fname[0]:
             return
         self.main2()
@@ -367,6 +396,7 @@ class XmlLoader(Node):
     def return_file(self):
         self.dialog.accept()
         print(type(self.df))
+        print(self.df.dtypes)
         if isinstance(self.df, pd.core.frame.DataFrame):
             self.is_finished = True
             print("completed")

@@ -34,7 +34,7 @@ class MainWindow(QMainWindow): # change to mainwindow
         # The long way 'round
         #status_bar = QStatusBar()
         #self.setStatusBar(status_bar)
-        #status_bar.showMessage('Welcome to text_editor.py')
+        #status_bar.showMessage('Welcome to main_window.py')
 
         # The short way 'round
         self.statusBar().showMessage('Ready')
@@ -265,7 +265,7 @@ class MainWindow(QMainWindow): # change to mainwindow
     def showAboutDialog(self):
         QMessageBox.about(
             self,
-            "About text_editor.py",
+            "About main_window.py",
             "This is a text editor written in PyQt5."
         )
 
