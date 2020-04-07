@@ -266,7 +266,7 @@ class MainWindow(QMainWindow): # change to mainwindow
         QMessageBox.about(
             self,
             "About main_window.py",
-            "This is a text editor written in PyQt5."
+            "This is a data analysis app written in PyQt5."
         )
 
     def openFile(self):

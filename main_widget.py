@@ -147,7 +147,7 @@ class MainWidget(QWidget):
                 node = AttributeRemover(self.scene)
             elif text == "Text output":
                 node = TextOutput(self.scene)
-            elif text == "Naive Bayes Classify":
+            elif text == "Naive Bayes":
                 node = NaiveBayesClassify(self.scene)
             elif text == "Knn":
                 node = Knn(self.scene)

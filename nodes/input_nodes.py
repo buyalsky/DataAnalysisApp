@@ -315,10 +315,11 @@ class XmlLoader(Node):
 
         for child in root:
             if child.tag == self.top_parent_item.text(0):
-                if len(child)>0:
+                if len(child) > 0:
                     self.add_data_element(child)
                 elif child.tag in [option.text(0) for option in self.selected_options]:
                     self.data[child.tag].append(child.text)
+
         print(self.data)
         self.df = pd.DataFrame(self.data, columns=[option.text(0) for option in self.selected_options])
         print(self.df.head(10))
@@ -354,8 +355,11 @@ class XmlLoader(Node):
                 self.df[column] = self.df[column].astype(float)
 
     def add_data_element(self, root):
+        for key, value in root.attrib.items():
+            if key in [option.text(0) for option in self.selected_options]:
+                self.data[key].append(value)
         for child in root:
-            if len(child)>0:
+            if len(child) > 0:
                 self.add_data_element(child)
             elif child.tag in [option.text(0) for option in self.selected_options]:
                 self.data[child.tag].append(child.text)
@@ -438,13 +442,19 @@ class XmlLoader(Node):
                 self.create_sub_tree(child, parent)
                 a.remove(child.tag)
 
-
-
         print(len(self.options))
         for option in self.options:
             print(option.text(0))
 
     def create_sub_tree(self, root, parent):
+        for key in root.attrib.keys():
+            child = QTreeWidgetItem(parent)
+            child.setForeground(0, QBrush(QColor(Qt.red)))
+            child.setFlags(child.flags() | Qt.ItemIsUserCheckable)
+            self.options.append(child)
+            child.setText(0, key)
+            child.setCheckState(0, Qt.Unchecked)
+
         for x in root:
             child = QTreeWidgetItem(parent)
             if len(x) == 0:
