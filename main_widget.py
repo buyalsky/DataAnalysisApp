@@ -137,7 +137,6 @@ class MainWidget(QWidget):
 
             print("GOT DROP: [%d] '%s'" % (op_code, text), "mouse:", mouse_position, "scene:", scene_position)
 
-            # @TODO Fix me!
             #node = Node(self.scene, text, inputs=1, outputs=1)
             if text == "Csv Loader":
                 node = CsvLoader(self.scene)

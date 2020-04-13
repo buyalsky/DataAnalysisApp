@@ -354,11 +354,232 @@ class SVM(Node):
         super().__init__(scene, title="SVM", inputs=1, outputs=1)
         self.node_type = "supervised.svm"
 
+    def run(self):
+        if not isinstance(self.df, pd.core.frame.DataFrame):
+            QMessageBox.about(
+                self.scene.parent_widget,
+                "Warning!",
+                "You need to complete preceding nodes first."
+            )
+            return
+        self.dialog = QDialog()
+        self.dialog.setWindowFlags(Qt.WindowTitleHint)
+        self.setupUi(self.dialog)
+        print(self.df.columns)
+        self.dialog.show()
+
+    def setupUi(self, Dialog):
+        Dialog.setObjectName("Dialog")
+        Dialog.resize(450, 155)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(Dialog.sizePolicy().hasHeightForWidth())
+        Dialog.setSizePolicy(sizePolicy)
+        self.buttonBox = QDialogButtonBox(Dialog)
+        self.buttonBox.setGeometry(QRect(100, 110, 341, 32))
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName("buttonBox")
+        self.layoutWidget = QWidget(Dialog)
+        self.layoutWidget.setGeometry(QRect(20, 30, 401, 71))
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.horizontalLayout = QHBoxLayout(self.layoutWidget)
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.verticalLayout = QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.label_2 = QLabel(self.layoutWidget)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout.addWidget(self.label_2)
+        self.label_3 = QLabel(self.layoutWidget)
+        self.label_3.setObjectName("label_3")
+        self.verticalLayout.addWidget(self.label_3)
+        self.horizontalLayout.addLayout(self.verticalLayout)
+        self.verticalLayout_2 = QVBoxLayout()
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.comboBox = QComboBox(self.layoutWidget)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.comboBox.sizePolicy().hasHeightForWidth())
+        self.comboBox.setSizePolicy(sizePolicy)
+        self.comboBox.setObjectName("comboBox")
+        self.verticalLayout_2.addWidget(self.comboBox)
+        self.lineEdit_2 = QLineEdit(self.layoutWidget)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_2.sizePolicy().hasHeightForWidth())
+        self.lineEdit_2.setSizePolicy(sizePolicy)
+        self.lineEdit_2.setObjectName("lineEdit_2")
+        self.verticalLayout_2.addWidget(self.lineEdit_2)
+        self.horizontalLayout.addLayout(self.verticalLayout_2)
+
+        self.retranslateUi(Dialog)
+        self.buttonBox.accepted.connect(self.apply_svm_classify)
+        self.buttonBox.rejected.connect(Dialog.reject)
+        QMetaObject.connectSlotsByName(Dialog)
+
+    def retranslateUi(self, Dialog):
+        _translate = QCoreApplication.translate
+        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.label_2.setText(_translate("Dialog", "Target selection"))
+        self.label_3.setText(_translate("Dialog", "Test size percentage"))
+        for i in range(len(self.df.columns)):
+            self.comboBox.addItem(str(self.df.columns[i]))
+
+    def apply_svm_classify(self):
+        self.dialog.accept()
+        print("apply svm classify")
+        print(self.df.head())
+        try:
+            self.split_target_and_inputs()
+            from sklearn.svm import SVC
+            from sklearn.model_selection import train_test_split
+
+            X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=int(self.lineEdit_2.text())/100, random_state=1, stratify=self.y)
+
+            svm = SVC(random_state=1)
+            svm.fit(X_train, y_train)
+            print(svm.score(X_test, y_test))
+        except Exception as e:
+            QMessageBox.about(
+                self.scene.parent_widget,
+                "Error happened",
+                str(e)
+            )
+        else:
+            self.is_finished = True
+            print("completed")
+            self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
+            # order the nodes
+            self.graphic_node.scene().scene.parent_widget.parent_window.order_path()
+            # feed the next node
+            #self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
+
+    def split_target_and_inputs(self):
+        self.X = self.df.drop(columns=[self.comboBox.currentText()])
+        self.y = self.df[self.comboBox.currentText()].values
+
+    def feed(self, df):
+        self.df = df
 
 class DecisionTree(Node):
     def __init__(self, scene):
         super().__init__(scene, title="Decision Tree", inputs=1, outputs=1)
         self.node_type = "supervised.decisiontree"
+
+    def run(self):
+        if not isinstance(self.df, pd.core.frame.DataFrame):
+            QMessageBox.about(
+                self.scene.parent_widget,
+                "Warning!",
+                "You need to complete preceding nodes first."
+            )
+            return
+        self.dialog = QDialog()
+        self.dialog.setWindowFlags(Qt.WindowTitleHint)
+        self.setupUi(self.dialog)
+        print(self.df.columns)
+        self.dialog.show()
+
+    def setupUi(self, Dialog):
+        Dialog.setObjectName("Dialog")
+        Dialog.resize(450, 155)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(Dialog.sizePolicy().hasHeightForWidth())
+        Dialog.setSizePolicy(sizePolicy)
+        self.buttonBox = QDialogButtonBox(Dialog)
+        self.buttonBox.setGeometry(QRect(100, 110, 341, 32))
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.setObjectName("buttonBox")
+        self.layoutWidget = QWidget(Dialog)
+        self.layoutWidget.setGeometry(QRect(20, 30, 401, 71))
+        self.layoutWidget.setObjectName("layoutWidget")
+        self.horizontalLayout = QHBoxLayout(self.layoutWidget)
+        self.horizontalLayout.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.verticalLayout = QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.label_2 = QLabel(self.layoutWidget)
+        self.label_2.setObjectName("label_2")
+        self.verticalLayout.addWidget(self.label_2)
+        self.label_3 = QLabel(self.layoutWidget)
+        self.label_3.setObjectName("label_3")
+        self.verticalLayout.addWidget(self.label_3)
+        self.horizontalLayout.addLayout(self.verticalLayout)
+        self.verticalLayout_2 = QVBoxLayout()
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.comboBox = QComboBox(self.layoutWidget)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.comboBox.sizePolicy().hasHeightForWidth())
+        self.comboBox.setSizePolicy(sizePolicy)
+        self.comboBox.setObjectName("comboBox")
+        self.verticalLayout_2.addWidget(self.comboBox)
+        self.lineEdit_2 = QLineEdit(self.layoutWidget)
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lineEdit_2.sizePolicy().hasHeightForWidth())
+        self.lineEdit_2.setSizePolicy(sizePolicy)
+        self.lineEdit_2.setObjectName("lineEdit_2")
+        self.verticalLayout_2.addWidget(self.lineEdit_2)
+        self.horizontalLayout.addLayout(self.verticalLayout_2)
+
+        self.retranslateUi(Dialog)
+        self.buttonBox.accepted.connect(self.apply_decision_tree_classify)
+        self.buttonBox.rejected.connect(Dialog.reject)
+        QMetaObject.connectSlotsByName(Dialog)
+
+    def retranslateUi(self, Dialog):
+        _translate = QCoreApplication.translate
+        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.label_2.setText(_translate("Dialog", "Target selection"))
+        self.label_3.setText(_translate("Dialog", "Test size percentage"))
+        for i in range(len(self.df.columns)):
+            self.comboBox.addItem(str(self.df.columns[i]))
+
+    def apply_decision_tree_classify(self):
+        self.dialog.accept()
+        print("apply svm classify")
+        print(self.df.head())
+        try:
+            self.split_target_and_inputs()
+            from sklearn.tree import DecisionTreeClassifier
+            from sklearn.model_selection import train_test_split
+
+            X_train, X_test, y_train, y_test = train_test_split(self.X, self.y, test_size=int(self.lineEdit_2.text())/100, random_state=1, stratify=self.y)
+
+            dt = DecisionTreeClassifier()
+            dt.fit(X_train, y_train)
+            print(dt.score(X_test, y_test))
+        except Exception as e:
+            QMessageBox.about(
+                self.scene.parent_widget,
+                "Error happened",
+                str(e)
+            )
+        else:
+            self.is_finished = True
+            print("completed")
+            self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
+            # order the nodes
+            self.graphic_node.scene().scene.parent_widget.parent_window.order_path()
+            # feed the next node
+            #self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
+
+    def split_target_and_inputs(self):
+        self.X = self.df.drop(columns=[self.comboBox.currentText()])
+        self.y = self.df[self.comboBox.currentText()].values
+
+    def feed(self, df):
+        self.df = df
 
 
 
