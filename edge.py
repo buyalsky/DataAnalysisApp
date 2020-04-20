@@ -48,12 +48,11 @@ class Edge:
             self.graphic_edge.setDestination(*source_pos)
         self.graphic_edge.update()
 
-
     def remove_from_sockets(self):
         if self.start_socket is not None:
-            self.start_socket.edge = None
+            self.start_socket.set_edge(None)
         if self.end_socket is not None:
-            self.end_socket.edge = None
+            self.end_socket.set_edge(None)
         self.end_socket = None
         self.start_socket = None
 

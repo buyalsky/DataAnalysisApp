@@ -1,22 +1,19 @@
 import sys
+import copy
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 
 from main_widget import MainWidget
 from drag_list import DragList
+from node import Node
 
-class MainWindow(QMainWindow): # change to mainwindow
 
-    #settings = {'show_warnings': True}
-    settings = QSettings('Alan D Moore', 'text editor')
+class MainWindow(QMainWindow):
+
+    settings = QSettings('Burak Dursunlar', 'Data analysis app')
 
     def __init__(self):
-        """MainWindow constructor.
-
-        This widget will be our main window.
-        We'll define all the UI components in here.
-        """
         super().__init__()
         # Main UI code goes here
 
@@ -30,13 +27,6 @@ class MainWindow(QMainWindow): # change to mainwindow
         #################
         # The Statusbar #
         #################
-
-        # The long way 'round
-        #status_bar = QStatusBar()
-        #self.setStatusBar(status_bar)
-        #status_bar.showMessage('Welcome to main_window.py')
-
-        # The short way 'round
         self.statusBar().showMessage('Ready')
 
         # add widgets to statusbar
@@ -64,10 +54,6 @@ class MainWindow(QMainWindow): # change to mainwindow
         # add an action with a callback
         quit_action = file_menu.addAction('Quit', self.destroy)
 
-        # connect to a Qt Slot
-
-        # create a QAction manually
-
         redo_action = QAction('Redo', self)
         edit_menu.addAction(redo_action)
 
@@ -86,27 +72,7 @@ class MainWindow(QMainWindow): # change to mainwindow
             Qt.BottomToolBarArea
         )
 
-        # Add with icons
-        open_icon = self.style().standardIcon(QStyle.SP_DirOpenIcon)
-        save_icon = self.style().standardIcon(QStyle.SP_DriveHDIcon)
-        run_icon = self.style().standardIcon(QStyle.SP_MediaPlay)
-        open_action.setIcon(open_icon)
-        toolbar.addAction(open_action)
-        toolbar.addAction(
-            save_icon,
-            'Save',
-            lambda: self.statusBar().showMessage('File Saved!')
-        )
-        toolbar.addAction(run_icon, 'Run', lambda :None)
-        # create a custom QAction
 
-        help_action = QAction(
-            self.style().standardIcon(QStyle.SP_DialogHelpButton),
-            'Help',
-            self,  # important to pass the parent!
-            triggered=self.print_paths
-        )
-        toolbar.addAction(help_action)
 
         dock = QDockWidget("Tools")
 
@@ -125,12 +91,12 @@ class MainWindow(QMainWindow): # change to mainwindow
         nodes_list_clustering = DragList()
         nodes_list_visualization = DragList()
 
-        nodes_list_loaders.add_my_items(['Csv Loader', 'Excel Loader', "Xml Loader"])
+        nodes_list_loaders.add_my_items(['Csv Loader', 'Excel Loader', "Xml Loader", "Deserializer"])
         nodes_list_preprocess.add_my_items(['Attribute Remover', 'Filter'])
-        nodes_list_regression.add_my_items(['Linear Regression'])
+        nodes_list_regression.add_my_items(['Linear Regression', "1x2 Demux", "1x3 Demux", "1x4 Demux", "1x5 Demux"])
         nodes_list_classification.add_my_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree', 'Decision Tree'])
         nodes_list_clustering.add_my_items(['K-means', "Hierarchical"])
-        nodes_list_visualization.add_my_items(["Text output", "Scatter plot", "Histogram"])
+        nodes_list_visualization.add_my_items(["Text output", "Scatter plot", "Histogram", "Predictor", "Serializer"])
 
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
@@ -176,7 +142,7 @@ class MainWindow(QMainWindow): # change to mainwindow
         dock.setWidget(tab_widget)
 
         # QMessageBox
-        help_menu.addAction('About', self.showAboutDialog)
+        help_menu.addAction('About', self.show_about_dialog)
 
         if self.settings.value('show_warnings', False, type=bool):
             response = QMessageBox.question(
@@ -211,8 +177,8 @@ class MainWindow(QMainWindow): # change to mainwindow
                 sys.exit()
 
         # QFileDialog
-        open_action.triggered.connect(self.openFile)
-        save_action.triggered.connect(self.saveFile)
+        open_action.triggered.connect(self.open_file)
+        save_action.triggered.connect(self.save_file)
 
         # QFontDialog
 
@@ -243,7 +209,7 @@ class MainWindow(QMainWindow): # change to mainwindow
     def order_path(self):
         first_node = None
         last_node = None
-        self.ordered_nodes = []
+        self.ordered_nodes = [[]]
         for node in self.main_widget.nodes:
             if node.is_first:
                 first_node = node
@@ -251,25 +217,30 @@ class MainWindow(QMainWindow): # change to mainwindow
                 last_node = node
 
         assert first_node is not None and last_node is not None
-        self.ordered_nodes.append(first_node)
+        self.ordered_nodes[0].append(first_node)
 
-        while len(self.ordered_nodes) < len(self.main_widget.nodes) -1:
-            self.ordered_nodes.append(self.ordered_nodes[-1].output_socket.edge.end_socket.node)
-        self.ordered_nodes.append(last_node)
+        while len(self.ordered_nodes[0]) < len(self.main_widget.nodes) - 1:
+            self.ordered_nodes[0].append(self.ordered_nodes[0][-1].output_socket.edge.end_socket.node)
+        self.ordered_nodes[0].append(last_node)
 
     def feed_next_node(self, node):
-        i = self.ordered_nodes.index(node)
-        self.ordered_nodes[i+1].feed(node.output)
+        for ordered_nodes in self.ordered_nodes:
+            # lojikte hata var sonra düzelt
+            # ValueError: 4 is not in list
+            try:
+                i = ordered_nodes.index(node)
+            except ValueError:
+                continue
+            ordered_nodes[i+1].feed(node.output)
 
-
-    def showAboutDialog(self):
+    def show_about_dialog(self):
         QMessageBox.about(
             self,
             "About main_window.py",
             "This is a data analysis app written in PyQt5."
         )
 
-    def openFile(self):
+    def open_file(self):
         filename, _ = QFileDialog.getOpenFileName(
             self,
             "Select a text file to open…",
@@ -286,7 +257,7 @@ class MainWindow(QMainWindow): # change to mainwindow
             except Exception as e:
                 QMessageBox.critical(f"Could not load file: {e}")
 
-    def saveFile(self):
+    def save_file(self):
         filename, _ = QFileDialog.getSaveFileName(
             self,
             "Select the file to save to…",
@@ -320,10 +291,9 @@ class MainWindow(QMainWindow): # change to mainwindow
     def change_statusbar_text(self):
         completed_count = 0
         for node in self.main_widget.nodes:
-            if node.is_finished:
+            if isinstance(node, Node) and node.is_finished:
                 completed_count += 1
         self.statusbar_label.setText("{}/{}".format(completed_count, len(self.main_widget.nodes)))
-
 
 
 class SettingsDialog(QDialog):
@@ -356,10 +326,7 @@ class SettingsDialog(QDialog):
         super().accept()
 
 
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    # it's required to save a reference to MainWindow.
-    # if it goes out of scope, it will be destroyed.
     mw = MainWindow()
     sys.exit(app.exec())

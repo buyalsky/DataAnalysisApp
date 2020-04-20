@@ -13,20 +13,16 @@ RIGHT_TOP = 3
 RIGHT_BOTTOM = 4
 
 
-
-
 class Socket:
-    def __init__(self, node, index=0, position=LEFT_TOP, socket_type=1):
+    def __init__(self, node, index=0, position=LEFT_TOP):
 
         self.node = node
         self.index = index
         self.position = position
-        self.socket_type = socket_type
 
         logging.debug("Socket -- creating with {} {} for node {}".format(self.index, self.position, self.node))
 
-
-        self.graphic_socket = GraphicSocket(self, self.socket_type)
+        self.graphic_socket = GraphicSocket(self)
 
         self.graphic_socket.setPos(*self.node.get_socket_position(index, position))
 
@@ -35,36 +31,33 @@ class Socket:
     def __str__(self):
         return "<Socket %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
 
-
     def get_socket_position(self):
         logging.debug("  GSP: {} {} node: {}".format(self.index, self.position, self.node))
         res = self.node.get_socket_position(self.index, self.position)
         logging.debug("  res {}".format(res))
         return res
 
-
-    def set_connected_edge(self, edge=None):
+    def set_edge(self, edge=None):
         self.edge = edge
+        self.graphic_socket.change_socket_color(bool(edge))
 
     def has_edge(self):
         return self.edge is not None
 
 
 class GraphicSocket(QGraphicsItem):
-    def __init__(self, socket, socket_type=1):
+    def __init__(self, socket):
         self.socket = socket
         super().__init__(socket.node.graphic_node)
 
         self.radius = 6.0
         self.outline_width = 1.0
-        self._color_background = QColor("#ff0000")
-        self._color_outline = QColor("#FF000000")
 
-        self._pen = QPen(self._color_outline)
+        self._pen = QPen(QColor("#FF000000"))
         self._pen.setWidthF(self.outline_width)
-        self._brush = QBrush(self._color_background)
+        self._brush = QBrush(QColor("#ff0000"))
 
-    def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
+    def paint(self, painter, graphics_item, widget=None):
         # painting circle
         painter.setBrush(self._brush)
         painter.setPen(self._pen)
@@ -77,3 +70,10 @@ class GraphicSocket(QGraphicsItem):
             2 * (self.radius + self.outline_width),
             2 * (self.radius + self.outline_width),
         )
+
+    def change_socket_color(self, is_connected):
+        if is_connected:
+            self._brush.setColor(QColor("#00ff00"))
+        else:
+            self._brush.setColor(QColor("#ff0000"))
+

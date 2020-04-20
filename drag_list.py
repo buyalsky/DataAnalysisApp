@@ -22,20 +22,9 @@ class DragList(QListWidget):
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setDragEnabled(True)
 
-        #self.addMyItems()
-
-    def addMyItems(self):
-        self.addMyItem("Csv Loader", "crimson_sharks.png", OP_NODE_INPUT)
-        self.addMyItem("Excel Loader", "crimson_sharks.png", OP_NODE_OUTPUT)
-        self.addMyItem("Node 3", "crimson_sharks.png", OP_NODE_ADD)
-        self.addMyItem("Node 4", "crimson_sharks.png", OP_NODE_SUB)
-        self.addMyItem("Node 5", "crimson_sharks.png", OP_NODE_MUL)
-        self.addMyItem("Node 6", "crimson_sharks.png", OP_NODE_DIV)
-
     def add_my_items(self, items=None):
         for item in items:
             self.addMyItem(item, "crimson_sharks.png", OP_NODE_INPUT)
-
 
     def addMyItem(self, name, icon=None, op_code=0):
         item = QListWidgetItem(name, self) # can be (icon, text, parent, <int>type)
