@@ -349,6 +349,7 @@ class NodeDemux:
         self.socket_spacing = 30
 
         self.node_type = ""
+        self.title = "1x{}Demux".format(outputs)
 
         self.input_socket = None
         self.output_sockets = []

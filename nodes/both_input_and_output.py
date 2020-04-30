@@ -60,12 +60,230 @@ class AttributeRemover(InputOutputNode):
                 dropped_columns.append(str(self.df.columns[i]))
                 print(checkbox.text())
         if dropped_columns:
-            self.df.drop(dropped_columns, axis=1, inplace=True)
+            self.modified_df = self.df.drop(dropped_columns, axis=1)
         print(self.df.head())
 
         self.is_finished = True
         print("completed")
         self.return_file()
+
+    @property
+    def output(self):
+        return self.modified_df
+
+
+class Filter(InputOutputNode):
+    def __init__(self, scene):
+        super().__init__(scene, title="Filter")
+        self.df = None
+
+    def setup_ui(self, dialog):
+        dialog.resize(512, 300)
+        self.gridLayout = QGridLayout(dialog)
+        self.verticalLayout = QVBoxLayout()
+        self.horizontalLayout = QHBoxLayout()
+        self.label = QLabel(dialog)
+        self.horizontalLayout.addWidget(self.label)
+        self.combo_box = QComboBox(dialog)
+        self.horizontalLayout.addWidget(self.combo_box)
+        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.frame = QFrame(dialog)
+        self.frame.setFrameShape(QFrame.StyledPanel)
+        self.frame.setFrameShadow(QFrame.Raised)
+
+        self.stacked_widget = QStackedWidget()
+        self.scroll_areas = []
+        self.scroll_areas_widget_contents = []
+        self.scroll_areas_layouts = []
+        self.line_edits = []
+        self.check_boxes = []
+
+        self.data_types = dict(self.df.dtypes)
+
+        for i in range(len(self.df.columns)):
+            if "int" in str(self.data_types[self.df.columns[i]]) or "float" in str(self.data_types[self.df.columns[i]]):
+                scroll_area = QScrollArea(self.frame)
+                scroll_area.setWidgetResizable(True)
+                contents = QWidget()
+                contents.setGeometry(QRect(0, 0, 399, 259))
+                scroll_area.setWidget(contents)
+                self.stacked_widget.addWidget(scroll_area)
+                self.scroll_areas.append(scroll_area)
+                self.scroll_areas_widget_contents.append(contents)
+                vertical_layout = QVBoxLayout(contents)
+
+                label_range_selection = QLabel(contents)
+                label_range_selection.setText("Range Selection")
+                vertical_layout.addWidget(label_range_selection)
+
+                line = QFrame(contents)
+                line.setFrameShape(QFrame.HLine)
+                line.setFrameShadow(QFrame.Sunken)
+                vertical_layout.addWidget(line)
+
+                font = QFont()
+                font.setPointSize(10)
+                horizontal_labels = QHBoxLayout()
+                label_from = QLabel(contents)
+                label_from.setFont(font)
+                label_from.setAlignment(Qt.AlignCenter)
+                label_from.setText("From")
+                label_empty = QLabel(contents)
+                label_empty.setText("")
+                label_to = QLabel(contents)
+                label_to.setFont(font)
+                label_to.setAlignment(Qt.AlignCenter)
+                label_to.setText("To")
+                horizontal_labels.addWidget(label_from, 40)
+                horizontal_labels.addWidget(label_empty, 20)
+                horizontal_labels.addWidget(label_to, 40)
+                vertical_layout.addLayout(horizontal_labels)
+
+                font.setPointSize(15)
+                horizontal_line_edits = QHBoxLayout()
+                line_from = QLineEdit(contents)
+                line_from.setFont(font)
+                label_empty2 = QLabel(contents)
+                label_empty2.setText("")
+                line_to = QLineEdit(contents)
+                line_to.setFont(font)
+                horizontal_line_edits.addWidget(line_from, 40)
+                horizontal_line_edits.addWidget(label_empty2, 20)
+                horizontal_line_edits.addWidget(line_to, 40)
+                self.line_edits.append((line_from, line_to))
+                vertical_layout.addLayout(horizontal_line_edits)
+
+                line = QFrame(contents)
+                line.setFrameShape(QFrame.HLine)
+                line.setFrameShadow(QFrame.Sunken)
+                vertical_layout.addWidget(line)
+
+                check_box_negate = QCheckBox(contents)
+                check_box_negate.setText("Grab values without this range.")
+                vertical_layout.addWidget(check_box_negate, 15)
+                check_box_remove_null = QCheckBox(contents)
+                check_box_remove_null.setText("Remove null values.")
+                vertical_layout.addWidget(check_box_remove_null)
+                self.check_boxes.append((check_box_negate, check_box_remove_null))
+
+                self.scroll_areas_layouts.append(vertical_layout)
+                self.combo_box.addItem("{} ({})".format(self.df.columns[i], self.data_types[self.df.columns[i]]))
+
+        self.gridLayout_2 = QGridLayout(self.frame)
+
+        self.stacked_widget.setCurrentIndex(0)
+        self.gridLayout_2.addWidget(self.stacked_widget, 0, 0, 1, 1)
+
+        self.verticalLayout.addWidget(self.frame)
+        self.buttons_horizontal_layout = QHBoxLayout()
+        self.reset_button = QPushButton(dialog)
+        self.buttons_horizontal_layout.addWidget(self.reset_button)
+        self.reset_all_button = QPushButton(dialog)
+        self.buttons_horizontal_layout.addWidget(self.reset_all_button)
+        self.button_box = QDialogButtonBox(dialog)
+        self.button_box.setOrientation(Qt.Horizontal)
+        self.button_box.setStandardButtons(
+            QDialogButtonBox.Apply | QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.buttons_horizontal_layout.addWidget(self.button_box)
+        self.verticalLayout.addLayout(self.buttons_horizontal_layout)
+        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
+
+        self.combo_box.currentIndexChanged.connect(self.set_visible_scroll_area2)
+
+        self.label.setText("Current Attribute")
+        self.reset_button.setText("Reset")
+        self.reset_all_button.setText("Reset All")
+
+        self.button_box.accepted.connect(dialog.accept)
+        self.button_box.rejected.connect(dialog.reject)
+        self.apply_button = self.button_box.button(QDialogButtonBox.Apply)
+        self.apply_button.clicked.connect(self.apply_clicked)
+        QMetaObject.connectSlotsByName(dialog)
+
+    @property
+    def output(self):
+        return self.modified_df
+
+    def set_visible_scroll_area2(self, index):
+        self.stacked_widget.setCurrentIndex(index)
+
+    def apply_clicked(self):
+        self.stacked_widget.currentWidget().setEnabled(False)
+        index = self.combo_box.currentIndex()
+        line_from, line_to = self.line_edits[index]
+        filt = (self.df[self.df.columns[index]] > int(line_from.text())) & (
+                    self.df[self.df.columns[index]] < int(line_to.text()))
+        if self.check_boxes[index][0].isChecked():
+            self.modified_df = self.df[~filt]
+        else:
+            self.modified_df = self.df[filt]
+        print(self.modified_df.head())
+
+
+class LinearRegression(InputOutputNode):
+    def __init__(self, scene):
+        super().__init__(scene, title="Linear Regression")
+
+    def setup_ui(self, dialog):
+        dialog.setObjectName("dialog")
+        dialog.resize(496, 198)
+        self.grid_layout = QGridLayout(dialog)
+        self.vertical_layout = QVBoxLayout()
+        self.horizontal_layout_target = QHBoxLayout()
+        self.label = QLabel(dialog)
+        self.horizontal_layout_target.addWidget(self.label)
+        self.combo_box_target = QComboBox(dialog)
+        self.horizontal_layout_target.addWidget(self.combo_box_target)
+        self.vertical_layout.addLayout(self.horizontal_layout_target)
+        self.horizontal_layout_degree = QHBoxLayout()
+        self.label2 = QLabel(dialog)
+        self.horizontal_layout_degree.addWidget(self.label2)
+        self.spin_box_degree = QSpinBox(dialog)
+        self.horizontal_layout_degree.addWidget(self.spin_box_degree)
+        self.vertical_layout.addLayout(self.horizontal_layout_degree)
+        self.check_box = QCheckBox(dialog)
+        self.check_box.setEnabled(False)
+        self.vertical_layout.addWidget(self.check_box)
+        self.label_info = QLabel(dialog)
+        font = QFont()
+        font.setPointSize(10)
+        self.label_info.setFont(font)
+        self.vertical_layout.addWidget(self.label_info)
+        self.grid_layout.addLayout(self.vertical_layout, 0, 0, 1, 1)
+        self.button_box = QDialogButtonBox(dialog)
+        self.button_box.setOrientation(Qt.Horizontal)
+        self.button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.grid_layout.addWidget(self.button_box, 1, 0, 1, 1)
+
+        dialog.setWindowTitle("Linear Regression")
+        self.spin_box_degree.setMinimum(1)
+        self.label.setText("Target")
+        self.label2.setText("Degree")
+        self.check_box.setText("Include Bias")
+
+        self.label_info.setText("Classic linear regression will be used If you do not specify degree. \n"
+                                "Using high degree parameter might lead overfitting. Additionally, \n"
+                                "for lower degrees the model will underfit the training data.")
+
+        self.spin_box_degree.valueChanged.connect(lambda val: self.check_box.setEnabled(val >= 2))
+
+        self.button_box.accepted.connect(dialog.accept)
+        self.button_box.rejected.connect(dialog.reject)
+        QMetaObject.connectSlotsByName(dialog)
+
+    def apply_linear_regression(self):
+        from sklearn.linear_model import LinearRegression
+        if self.spin_box_degree.value() >= 2:
+            from sklearn.preprocessing import PolynomialFeatures
+            polynomial_regression = PolynomialFeatures(degree=self.spin_box_degree.value())
+            self.X = polynomial_regression.fit_transform(self.X)
+        self.model = LinearRegression()
+        self.model.fit(self.X, self.y)
+
+
+    def split_target_and_inputs(self):
+        self.X = self.df.drop(columns=[self.combo_box_target.currentText()])
+        self.y = self.df[self.combo_box_target.currentText()].values
 
 
 class NaiveBayesClassify(InputOutputNode):
@@ -143,7 +361,9 @@ class NaiveBayesClassify(InputOutputNode):
             from sklearn.naive_bayes import GaussianNB
             from sklearn.model_selection import train_test_split
 
-            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y, test_size=int(self.line_edit_2.text()) / 100, random_state=1, stratify=self.y)
+            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y,
+                                                                          test_size=int(self.line_edit_2.text()) / 100,
+                                                                          random_state=1, stratify=self.y)
 
             self.model = GaussianNB()
             self.model.fit(X_train, y_train)
@@ -267,7 +487,9 @@ class Knn(InputOutputNode):
             from sklearn.neighbors import KNeighborsClassifier
             from sklearn.model_selection import train_test_split
 
-            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y, test_size=int(self.line_edit2.text()) / 100, random_state=1, stratify=self.y)
+            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y,
+                                                                          test_size=int(self.line_edit2.text()) / 100,
+                                                                          random_state=1, stratify=self.y)
 
             self.model = KNeighborsClassifier(n_neighbors=int(self.line_edit.text()))
             self.model.fit(X_train, y_train)
@@ -308,7 +530,7 @@ class SVM(InputOutputNode):
         self.buttonBox = QDialogButtonBox(dialog)
         self.buttonBox.setGeometry(QRect(100, 110, 341, 32))
         self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.layoutWidget = QWidget(dialog)
         self.layoutWidget.setGeometry(QRect(20, 30, 401, 71))
         self.horizontalLayout = QHBoxLayout(self.layoutWidget)
@@ -356,7 +578,9 @@ class SVM(InputOutputNode):
             from sklearn.svm import SVC
             from sklearn.model_selection import train_test_split
 
-            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y, test_size=int(self.lineEdit_2.text())/100, random_state=1, stratify=self.y)
+            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y,
+                                                                          test_size=int(self.lineEdit_2.text()) / 100,
+                                                                          random_state=1, stratify=self.y)
 
             self.model = SVC(random_state=1)
             self.model.fit(X_train, y_train)
@@ -406,7 +630,7 @@ class DecisionTree(InputOutputNode):
         self.buttonBox = QDialogButtonBox(dialog)
         self.buttonBox.setGeometry(QRect(100, 110, 341, 32))
         self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.layoutWidget = QWidget(dialog)
         self.layoutWidget.setGeometry(QRect(20, 30, 401, 71))
         self.horizontal_layout = QHBoxLayout(self.layoutWidget)

@@ -6,7 +6,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-import pandas as pd
+from matplotlib import pyplot as plt
 
 sys.path.append(os.path.abspath(os.path.join("..")))
 from node import Node
@@ -269,6 +269,146 @@ class Serializer(Node):
         with open(self.lineEdit.text(), "wb") as f:
             pickle.dump(self.fed_data, f)
         print("save completed")
+
+    def feed(self, model):
+        self.fed_data = model
+
+
+class SimplePlot(Node):
+    def __init__(self, scene):
+        super().__init__(scene, title="Simple Plot", inputs=1, outputs=0)
+        self.is_last = True
+        self.node_type = "visualisation.simple"
+
+    def run(self):
+        self.dialog = QDialog()
+        self.dialog.setWindowFlags(Qt.WindowTitleHint)
+        self.setup_ui(self.dialog)
+        self.dialog.show()
+
+    def setup_ui(self, dialog):
+        dialog.setObjectName("Dialog")
+        dialog.resize(606, 459)
+        self.gridLayout = QGridLayout(dialog)
+        self.verticalLayout = QVBoxLayout()
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.label = QLabel(dialog)
+        self.horizontalLayout_3.addWidget(self.label, 30)
+        self.combo_box_x = QComboBox(dialog)
+        self.horizontalLayout_3.addWidget(self.combo_box_x, 70)
+        self.verticalLayout.addLayout(self.horizontalLayout_3)
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.label2 = QLabel(dialog)
+        self.horizontalLayout_2.addWidget(self.label2, 30)
+        self.scroll_area_y = QScrollArea(dialog)
+        self.scroll_area_y.setWidgetResizable(True)
+        self.scroll_area_widget_contents = QWidget()
+        self.scroll_area_widget_contents.setGeometry(QRect(0, 0, 532, 269))
+
+        self.vertical_layout5 = QVBoxLayout(self.scroll_area_widget_contents)
+        self.check_boxes = []
+
+        self.combo_box_x.addItem("Not selected yet")
+        data_types = dict(self.fed_data.dtypes)
+        for i in range(len(self.fed_data.columns)):
+            data_type = str(data_types[self.fed_data.columns[i]])
+            if "int" in data_type or "float" in data_type:
+                c = QCheckBox(self.scroll_area_widget_contents)
+                c.setText("{}".format(self.fed_data.columns[i]))
+                self.check_boxes.append(c)
+                self.combo_box_x.addItem(c.text())
+                self.vertical_layout5.addWidget(c)
+
+        self.scroll_area_y.setWidget(self.scroll_area_widget_contents)
+        self.horizontalLayout_2.addWidget(self.scroll_area_y, 70)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
+        self.horizontalLayout = QHBoxLayout()
+        self.label3 = QLabel(dialog)
+        self.horizontalLayout.addWidget(self.label3, 30)
+        self.title_name_edit = QLineEdit(dialog)
+        self.horizontalLayout.addWidget(self.title_name_edit, 70)
+        self.verticalLayout.addLayout(self.horizontalLayout)
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.label4 = QLabel(dialog)
+        self.horizontalLayout_4.addWidget(self.label4, 30)
+        self.style_select_combo_box = QComboBox(dialog)
+        self.horizontalLayout_4.addWidget(self.style_select_combo_box, 70)
+
+        self.style_select_combo_box.addItem("Default style")
+        self.style_select_combo_box.addItems(plt.style.available)
+
+        self.verticalLayout.addLayout(self.horizontalLayout_4)
+        self.plot_button = QPushButton(dialog)
+        self.plot_button.setEnabled(False)
+        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.plot_button.sizePolicy().hasHeightForWidth())
+        self.plot_button.setSizePolicy(sizePolicy)
+        self.verticalLayout.addWidget(self.plot_button)
+        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
+        self.button_box = QDialogButtonBox(dialog)
+        self.button_box.setOrientation(Qt.Horizontal)
+        self.button_box.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
+        self.gridLayout.addWidget(self.button_box, 1, 0, 1, 1)
+
+        dialog.setWindowTitle("Simple Plot")
+        self.label.setText("X axis")
+        self.label2.setText("Y axis")
+        self.label3.setText("Title name")
+        self.label4.setText("Style select")
+        self.plot_button.setText("Plot")
+
+        self.button_box.accepted.connect(dialog.accept)
+        self.button_box.rejected.connect(dialog.reject)
+        self.plot_button.clicked.connect(self.plot_data)
+        self.combo_box_x.currentTextChanged.connect(self.x_axis_changed)
+
+        for checkbox in self.check_boxes:
+            checkbox.clicked.connect(self.checkbox_selected)
+
+        QMetaObject.connectSlotsByName(dialog)
+
+    def plot_data(self):
+        if self.style_select_combo_box.currentText() != "Default style":
+            plt.style.use(self.style_select_combo_box.currentText())
+
+        x_axis = self.fed_data[self.combo_box_x.currentText()]
+        for check_box in self.check_boxes:
+            if check_box.isChecked():
+                plt.plot(x_axis, self.fed_data[check_box.text()], label=check_box.text())
+
+        if self.title_name_edit.text():
+            plt.title(self.title_name_edit.text())
+
+        plt.legend()
+
+        plt.tight_layout()
+
+        plt.show()
+
+    def x_axis_changed(self, text):
+        if text == "Not selected yet":
+            self.plot_button.setEnabled(False)
+            for checkbox in self.check_boxes:
+                checkbox.setEnabled(True)
+        else:
+            self.disable_checkbox(text)
+
+    def checkbox_selected(self):
+        for checkbox in self.check_boxes:
+            if checkbox.isEnabled() and checkbox.isChecked():
+                if self.combo_box_x.currentText() != "Not selected yet":
+                    self.plot_button.setEnabled(True)
+                    return
+        self.plot_button.setEnabled(False)
+
+    def disable_checkbox(self, text):
+        for checkbox in self.check_boxes:
+            if checkbox.text() == text:
+                checkbox.setEnabled(False)
+            else:
+                checkbox.setEnabled(True)
 
     def feed(self, model):
         self.fed_data = model

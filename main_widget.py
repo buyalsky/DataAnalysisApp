@@ -105,6 +105,10 @@ class MainWidget(QWidget):
                 node = ExcelLoader(self.scene)
             elif text == "Attribute Remover":
                 node = AttributeRemover(self.scene)
+            elif text == "Linear Regression":
+                node = LinearRegression(self.scene)
+            elif text == "Filter":
+                node = Filter(self.scene)
             elif text == "Text output":
                 node = TextOutput(self.scene)
             elif text == "Naive Bayes":
@@ -127,6 +131,8 @@ class MainWidget(QWidget):
                 node = Serializer(self.scene)
             elif text == "Deserializer":
                 node = Deserializer(self.scene)
+            elif text == "Simple Plot":
+                node = SimplePlot(self.scene)
             elif "Demux" in text:
                 node = NodeDemux(self.scene, inputs=1, outputs=int(text[2]))
             else:

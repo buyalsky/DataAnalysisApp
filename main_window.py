@@ -6,7 +6,7 @@ from PyQt5.QtGui import *
 
 from main_widget import MainWidget
 from drag_list import DragList
-from node import Node
+from node import Node, NodeDemux
 
 
 class MainWindow(QMainWindow):
@@ -72,8 +72,6 @@ class MainWindow(QMainWindow):
             Qt.BottomToolBarArea
         )
 
-
-
         dock = QDockWidget("Tools")
 
         dock_loaders_widget = QWidget(self)
@@ -82,7 +80,6 @@ class MainWindow(QMainWindow):
         dock_classification_widget = QWidget(self)
         dock_clustering_widget = QWidget(self)
         dock_visualization_widget = QWidget(self)
-
 
         nodes_list_loaders = DragList()
         nodes_list_preprocess = DragList()
@@ -96,7 +93,8 @@ class MainWindow(QMainWindow):
         nodes_list_regression.add_my_items(['Linear Regression', "1x2 Demux", "1x3 Demux", "1x4 Demux", "1x5 Demux"])
         nodes_list_classification.add_my_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree', 'Decision Tree'])
         nodes_list_clustering.add_my_items(['K-means', "Hierarchical"])
-        nodes_list_visualization.add_my_items(["Text output", "Scatter plot", "Histogram", "Predictor", "Serializer"])
+        nodes_list_visualization.add_my_items(["Text output", "Scatter plot", "Histogram", "Predictor", "Serializer",
+                                               "Simple Plot"])
 
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
@@ -114,7 +112,6 @@ class MainWindow(QMainWindow):
         dock_layout_clustering = QHBoxLayout()
         dock_layout_visualization = QHBoxLayout()
 
-
         dock_loaders_widget.setLayout(dock_layout_loaders)
         dock_preprocess_widget.setLayout(dock_layout_preprocess)
         dock_regression_widget.setLayout(dock_layout_regression)
@@ -131,7 +128,6 @@ class MainWindow(QMainWindow):
         dock_layout_clustering.addWidget(nodes_list_clustering)
         dock_layout_visualization.addWidget(nodes_list_visualization)
 
-
         tab_widget.addTab(dock_loaders_widget, 'Tab 1')
         tab_widget.addTab(dock_preprocess_widget, 'Tab 2')
         tab_widget.addTab(dock_regression_widget, 'Tab 3')
@@ -143,6 +139,7 @@ class MainWindow(QMainWindow):
 
         # QMessageBox
         help_menu.addAction('About', self.show_about_dialog)
+        help_menu.addAction("Node List", self.print_paths)
 
         if self.settings.value('show_warnings', False, type=bool):
             response = QMessageBox.question(
@@ -181,18 +178,10 @@ class MainWindow(QMainWindow):
         save_action.triggered.connect(self.save_file)
 
         # QFontDialog
-
         edit_menu.addAction('Set Font…', self.set_font)
 
         # Custom dialog
         edit_menu.addAction('Settings…', self.show_settings)
-
-        ###################
-        # Saving Settings #
-        ###################
-
-
-        # End main UI code
         self.show()
 
     def print_paths(self):
@@ -203,30 +192,48 @@ class MainWindow(QMainWindow):
             print("from " + edge.start_socket.node.title + " to " + edge.end_socket.node.title)
         self.order_path()
         print("printing the ordered nodes")
-        for node in self.ordered_nodes:
-            print(node.title)
+        for inner_list in self.ordered_nodes:
+            for path in inner_list:
+                print("{}-".format(path.title), end="")
+            print("")
 
     def order_path(self):
         first_node = None
-        last_node = None
         self.ordered_nodes = [[]]
         for node in self.main_widget.nodes:
-            if node.is_first:
+            if isinstance(node, Node) and node.is_first:
                 first_node = node
-            if node.is_last:
-                last_node = node
 
-        assert first_node is not None and last_node is not None
-        self.ordered_nodes[0].append(first_node)
+        self.append_nodes_by_order(first_node, self.ordered_nodes[0])
 
-        while len(self.ordered_nodes[0]) < len(self.main_widget.nodes) - 1:
-            self.ordered_nodes[0].append(self.ordered_nodes[0][-1].output_socket.edge.end_socket.node)
-        self.ordered_nodes[0].append(last_node)
+    def append_nodes_by_order(self, node, l):
+        if isinstance(node, Node):
+            l.append(node)
+        if node.is_last:
+            return
+        while True:
+            next_node = l[-1].output_socket.edge.end_socket.node
+            if isinstance(next_node, NodeDemux):
+                copied_lists = []
+                for i in range(len(next_node.output_sockets) - 1):
+                    copied_lists.append([])
+
+                for i, socket in enumerate(next_node.output_sockets):
+                    if i == len(next_node.output_sockets) - 1:
+                        self.append_nodes_by_order(socket.edge.end_socket.node, l)
+                    else:
+                        for item in l:
+                            copied_lists[i].append(item)
+                        self.ordered_nodes.append(copied_lists[i])
+                        self.append_nodes_by_order(socket.edge.end_socket.node, copied_lists[i])
+                break
+            l.append(next_node)
+            if next_node.is_last:
+                break
+
 
     def feed_next_node(self, node):
         for ordered_nodes in self.ordered_nodes:
-            # lojikte hata var sonra düzelt
-            # ValueError: 4 is not in list
             try:
                 i = ordered_nodes.index(node)
             except ValueError:
