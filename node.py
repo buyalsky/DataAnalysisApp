@@ -165,6 +165,7 @@ class NodeContentWidget(QWidget):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
+        self.setStyleSheet("background: transparent;")
         label = QLabel()
         # label.setStyleSheet("background-color: rgba(0,0,0,0%)")
         # label.setAttribute(Qt.WA_TranslucentBackground)
@@ -185,9 +186,6 @@ class Node:
 
         self.scene.add_node(self)
         self.scene.graphic_scene.addItem(self.graphic_node)
-
-        # self.socket_spacing = 22
-
         self.node_type = ""
 
         self.is_first = False
@@ -209,14 +207,14 @@ class Node:
 
     @property
     def pos(self):
-        return self.graphic_node.pos()        # QPointF
+        return self.graphic_node.pos()
 
     def set_pos(self, x, y):
         self.graphic_node.setPos(x, y)
 
     def get_socket_position(self, index, position):
         x = 0 if (position in (LEFT_TOP, LEFT_BOTTOM)) else self.graphic_node.width
-
+        # todo no need to be detailed about position
         if position in (LEFT_BOTTOM, RIGHT_BOTTOM):
             # start from bottom
             # y = self.graphic_node.height - self.graphic_node.edge_size
@@ -268,10 +266,10 @@ class InputNode(Node):
         print("calusuyor")
         self.df = None
         self.dialog = QDialog()
-        self.setup_ui(self.dialog)
+        self.setup_ui()
         self.dialog.show()
 
-    def setup_ui(self, dialog):
+    def setup_ui(self):
         raise NotImplementedError
 
     def return_file(self):
@@ -296,6 +294,7 @@ class InputNode(Node):
 
 class InputOutputNode(Node):
     dialog = None
+    df = None
 
     def __init__(self, scene, title=None, title_height=None):
         Node.__init__(self, scene, title=title, inputs=1, outputs=1, title_height=title_height)
@@ -309,11 +308,12 @@ class InputOutputNode(Node):
             )
             return
         self.dialog = QDialog()
+        self.dialog.setModal(True)
         self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setup_ui(self.dialog)
+        self.setup_ui()
         self.dialog.show()
 
-    def setup_ui(self, dialog):
+    def setup_ui(self):
         raise NotImplementedError
 
     def return_file(self):
@@ -332,9 +332,21 @@ class InputOutputNode(Node):
 
 
 class OutputNode(Node):
+    dialog = None
+    fed_data = None
+
     def __init__(self, scene, title=None, title_height=None):
-        Node.__init__(self, scene, title=title, inputs=0, outputs=1, title_height=title_height)
+        Node.__init__(self, scene, title=title, inputs=1, outputs=0, title_height=title_height)
         self.is_last = True
+
+    def run(self):
+        pass
+
+    def setup_ui(self):
+        raise NotImplementedError
+
+    def feed(self, fed_data):
+        self.fed_data = fed_data
 
 
 class NodeDemux:
@@ -361,7 +373,7 @@ class NodeDemux:
             self.output_sockets.append(Socket(node=self, index=i, position=RIGHT_BOTTOM))
 
     def __str__(self):
-        return "<DemuxNode %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
+        return "DemuxNode which contains {} outputs".format(len(self.output_sockets))
 
     @property
     def pos(self):

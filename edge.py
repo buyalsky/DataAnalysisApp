@@ -1,20 +1,19 @@
 import math
-from PyQt5.QtWidgets import *
+import logging
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
-from socket_ import *
-import logging
+from PyQt5.QtWidgets import *
+
+from socket_ import LEFT_TOP, LEFT_BOTTOM, RIGHT_BOTTOM, RIGHT_TOP
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
-EDGE_CP_ROUNDNESS = 100
-EDGE_TYPE_DIRECT = 1
-EDGE_TYPE_BEZIER = 2
+EDGE_ROUNDNESS = 100
 
 
 class Edge:
-    def __init__(self, scene, start_socket, end_socket, edge_type=EDGE_TYPE_DIRECT):
+    def __init__(self, scene, start_socket, end_socket):
 
         self.scene = scene
 
@@ -25,7 +24,7 @@ class Edge:
         if self.end_socket is not None:
             self.end_socket.edge = self
 
-        self.graphic_edge = GraphicEdgeDirect(self) if edge_type == EDGE_TYPE_DIRECT else GraphicEdgeBezier(self)
+        self.graphic_edge = GraphicEdgeCurved(self)
 
         self.update_positions()
         self.scene.graphic_scene.addItem(self.graphic_edge)
@@ -56,7 +55,6 @@ class Edge:
         self.end_socket = None
         self.start_socket = None
 
-    "removes edges from nodes"
     def remove(self):
         logger.debug(" Removing Edge {}".format(self))
         logger.debug(" - remove edge from all sockets")
@@ -102,7 +100,6 @@ class GraphicEdge(QGraphicsPathItem):
     def setDestination(self, x, y):
         self.posDestination = [x, y]
 
-
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         self.setPath(self.calc_path())
 
@@ -120,18 +117,10 @@ class GraphicEdge(QGraphicsPathItem):
         return cutpath.intersects(path)
 
     def calc_path(self):
-        """ Will handle drawing QPainterPath from Point A to B """
-        raise NotImplemented("This method has to be overriden in a child class")
+        raise NotImplementedError
 
 
-class GraphicEdgeDirect(GraphicEdge):
-    def calc_path(self):
-        path = QPainterPath(QPointF(self.posSource[0], self.posSource[1]))
-        path.lineTo(self.posDestination[0], self.posDestination[1])
-        return path
-
-
-class GraphicEdgeBezier(GraphicEdge):
+class GraphicEdgeCurved(GraphicEdge):
     def calc_path(self):
         s = self.posSource
         d = self.posDestination
@@ -152,17 +141,14 @@ class GraphicEdgeBezier(GraphicEdge):
                 (s[1] - d[1]) / math.fabs(
                     (s[1] - d[1]) if (s[1] - d[1]) != 0 else 0.00001
                 )
-            ) * EDGE_CP_ROUNDNESS
+            ) * EDGE_ROUNDNESS
             cpy_s = (
                 (d[1] - s[1]) / math.fabs(
                     (d[1] - s[1]) if (d[1] - s[1]) != 0 else 0.00001
                 )
-            ) * EDGE_CP_ROUNDNESS
-
-
+            ) * EDGE_ROUNDNESS
 
         path = QPainterPath(QPointF(self.posSource[0], self.posSource[1]))
-        path.cubicTo( s[0] + cpx_s, s[1] + cpy_s, d[0] + cpx_d, d[1] + cpy_d, self.posDestination[0], self.posDestination[1])
+        path.cubicTo(s[0] + cpx_s, s[1] + cpy_s, d[0] + cpx_d, d[1] + cpy_d, self.posDestination[0], self.posDestination[1])
 
         return path
-

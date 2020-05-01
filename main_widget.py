@@ -7,17 +7,9 @@ from nodes.both_input_and_output import *
 from nodes.output_nodes import *
 from scene import Scene
 from node import Node, NodeDemux
-from edge import Edge, EDGE_TYPE_BEZIER
 from graphics_view import GraphicsView
 
 LISTBOX_MIMETYPE = "application/x-item"
-
-OP_NODE_INPUT = 1
-OP_NODE_OUTPUT = 2
-OP_NODE_ADD = 3
-OP_NODE_SUB = 4
-OP_NODE_MUL = 5
-OP_NODE_DIV = 6
 
 
 class MainWidget(QWidget):
@@ -25,9 +17,6 @@ class MainWidget(QWidget):
         super().__init__(parent)
         if parent_window:
             self.parent_window = parent_window
-
-        self.load_stylesheet('qss/nodestyle.qss')
-
         self.initUI()
         self.scene.addHasBeenModifiedListener(self.setTitle)
         self.scene.addDragEnterListener(self.on_drag_enter)
@@ -53,7 +42,6 @@ class MainWidget(QWidget):
         self.view = GraphicsView(self.scene.graphic_scene, self)
         self.layout.addWidget(self.view)
 
-        self.setWindowTitle("Node Editor")
         self.show()
 
     def load_stylesheet(self, filename):
@@ -82,8 +70,6 @@ class MainWidget(QWidget):
             event.setAccepted(False)
 
     def on_drop(self, event):
-        # print("CalcSubWnd :: ~onDrop")
-        # print("text: '%s'" % event.mimeData().text())
         if event.mimeData().hasFormat(LISTBOX_MIMETYPE):
             eventData = event.mimeData().data(LISTBOX_MIMETYPE)
             dataStream = QDataStream(eventData, QIODevice.ReadOnly)
@@ -97,7 +83,6 @@ class MainWidget(QWidget):
 
             print("GOT DROP: [%d] '%s'" % (op_code, text), "mouse:", mouse_position, "scene:", scene_position)
 
-            # node = Node(self.scene, text, inputs=1, outputs=1)
             # TODO: these if statements are verbose, use dictionary instead
             if text == "Csv Loader":
                 node = CsvLoader(self.scene)
@@ -146,3 +131,11 @@ class MainWidget(QWidget):
             event.accept()
         else:
             event.ignore()
+
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+
+    wnd = MainWidget()
+
+    sys.exit(app.exec_())

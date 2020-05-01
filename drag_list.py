@@ -4,12 +4,6 @@ from PyQt5.QtWidgets import *
 
 LISTBOX_MIMETYPE = "application/x-item"
 
-OP_NODE_INPUT = 1
-OP_NODE_OUTPUT = 2
-OP_NODE_ADD = 3
-OP_NODE_SUB = 4
-OP_NODE_MUL = 5
-OP_NODE_DIV = 6
 
 class DragList(QListWidget):
     def __init__(self, parent=None):
@@ -24,10 +18,10 @@ class DragList(QListWidget):
 
     def add_my_items(self, items=None):
         for item in items:
-            self.addMyItem(item, "crimson_sharks.png", OP_NODE_INPUT)
+            self.addMyItem(item, "crimson_sharks.png")
 
-    def addMyItem(self, name, icon=None, op_code=0):
-        item = QListWidgetItem(name, self) # can be (icon, text, parent, <int>type)
+    def addMyItem(self, name, icon=None):
+        item = QListWidgetItem(name, self)
         pixmap = QPixmap(icon if icon is not None else ".")
         item.setIcon(QIcon(pixmap))
         item.setSizeHint(QSize(32, 32))
@@ -36,7 +30,7 @@ class DragList(QListWidget):
 
         # setup data
         item.setData(Qt.UserRole, pixmap)
-        item.setData(Qt.UserRole + 1, op_code)
+        item.setData(Qt.UserRole + 1, 1)
 
     def startDrag(self, *args, **kwargs):
         try:

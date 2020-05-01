@@ -9,75 +9,73 @@ from PyQt5.QtWidgets import *
 from matplotlib import pyplot as plt
 
 sys.path.append(os.path.abspath(os.path.join("..")))
-from node import Node
+from node import OutputNode
 
 
-class TextOutput(Node):
-    fed_data = None
+class TextOutput(OutputNode):
+    line_edit = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Text Output", inputs=1, outputs=0)
-        self.is_last = True
+        super().__init__(scene, title="Text Output")
         self.node_type = "visualisation.text"
 
     def run(self):
         self.dialog = QDialog()
+        self.dialog.setModal(True)
         self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setupUi(self.dialog)
+        self.setup_ui()
         self.dialog.show()
 
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(398, 167)
-        self.buttonBox = QDialogButtonBox(Dialog)
-        self.buttonBox.setGeometry(QRect(30, 120, 341, 32))
-        self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
-        self.buttonBox.setObjectName("buttonBox")
-        self.widget = QWidget(Dialog)
-        self.widget.setGeometry(QRect(10, 30, 381, 81))
-        self.widget.setObjectName("widget")
-        self.verticalLayout = QVBoxLayout(self.widget)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.label = QLabel(self.widget)
-        self.label.setObjectName("label")
-        self.horizontalLayout.addWidget(self.label)
-        self.lineEdit = QLineEdit(self.widget)
-        self.lineEdit.setObjectName("lineEdit")
-        self.horizontalLayout.addWidget(self.lineEdit)
-        self.pushButton = QPushButton(self.widget)
-        self.pushButton.setObjectName("pushButton")
-        self.horizontalLayout.addWidget(self.pushButton)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.label_2 = QLabel(self.widget)
+    def setup_ui(self):
+        self.dialog.resize(398, 167)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setGeometry(QRect(30, 120, 341, 32))
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        widget = QWidget(self.dialog)
+        widget.setGeometry(QRect(10, 30, 381, 81))
+        vertical_layout = QVBoxLayout(widget)
+        vertical_layout.setContentsMargins(0, 0, 0, 0)
+        horizontal_layout = QHBoxLayout()
+        label = QLabel(widget)
+        horizontal_layout.addWidget(label)
+        self.line_edit = QLineEdit(widget)
+        horizontal_layout.addWidget(self.line_edit)
+        push_button = QPushButton(widget)
+        horizontal_layout.addWidget(push_button)
+        vertical_layout.addLayout(horizontal_layout)
+        label_info = QLabel(widget)
         font = QFont()
         font.setFamily("DejaVu Sans")
         font.setPointSize(10)
-        self.label_2.setFont(font)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout.addWidget(self.label_2)
+        label_info.setFont(font)
+        vertical_layout.addWidget(label_info)
 
-        self.retranslateUi(Dialog)
-        # TODO: create a method which saves the file
-        self.buttonBox.accepted.connect(Dialog.accept)
-        self.buttonBox.rejected.connect(Dialog.reject)
-        self.pushButton.clicked.connect(self.select_directory)
-        QMetaObject.connectSlotsByName(Dialog)
+        self.dialog.setWindowTitle("Text Output")
+        label.setText("Select Directory")
+        push_button.setText("Select")
+        label_info.setText("Text file will be saved to the directory you select.")
 
-    def retranslateUi(self, Dialog):
-        _translate = QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label.setText(_translate("Dialog", "Select Directory"))
-        self.pushButton.setText(_translate("Dialog", "Select"))
-        self.label_2.setText(_translate("Dialog", "Text file will be saved to the directory you select."))
+        button_box.accepted.connect(self.save_file)
+        button_box.rejected.connect(self.dialog.reject)
+        push_button.clicked.connect(self.select_directory)
+        QMetaObject.connectSlotsByName(self.dialog)
 
     def select_directory(self):
-        self.directory, _ = QFileDialog.getSaveFileName(QMainWindow(), "Save as", QDir.homePath(), "Text files (*.txt)",
-                                    options=QFileDialog.DontResolveSymlinks | QFileDialog.DontUseNativeDialog)
-        self.lineEdit.setText(self.directory)
+        directory, _ = QFileDialog.getSaveFileName(QMainWindow(), "Save as", QDir.homePath(), "Text files (*.txt)",
+                                                   options=QFileDialog.DontResolveSymlinks | QFileDialog.
+                                                   DontUseNativeDialog)
+        self.line_edit.setText(directory)
+
+    def save_file(self):
+        directory = self.line_edit.text()
+        if not directory:
+            QMessageBox.warning(
+                self.dialog,
+                "Warning!",
+                "You need to specify a directory."
+            )
+            return
         if isinstance(self.fed_data, dict):
             from sklearn.metrics import confusion_matrix
             from sklearn.metrics import classification_report
@@ -88,7 +86,7 @@ class TextOutput(Node):
             y_predicted = model.predict(X_test)
             conf_matrix = confusion_matrix(y_test, y_predicted)
             report = classification_report(y_test, y_predicted)
-            with open(self.directory, "w+") as fd:
+            with open(directory, "w+") as fd:
                 fd.write("Confusion Matrix:\n")
                 fd.write(str(conf_matrix))
                 fd.write("\nAccuracy Score {}".format(model.score(X_test, y_test)))
@@ -96,26 +94,22 @@ class TextOutput(Node):
                 fd.write(report)
 
         else:
-            with open(self.directory, "w+") as fd:
+            with open(directory, "w+") as fd:
                 fd.write(str(self.fed_data.describe()))
         print("save completed")
+        self.dialog.accept()
 
     def feed(self, df_or_model):
         self.fed_data = df_or_model
 
 
-class Predictor(Node):
-    fed_data = None
-    scroll_area = None
-    gridLayout = None
-    scroll_area_widget_contents = None
-    formLayout = None
-    labels = None
+class Predictor(OutputNode):
+    data_types = None
+    result_label = None
     input_widgets = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Predictor", inputs=1, outputs=0)
-        self.is_last = True
+        super().__init__(scene, title="Predictor")
 
     def run(self):
         if not self.fed_data or not isinstance(self.fed_data, dict):
@@ -126,28 +120,25 @@ class Predictor(Node):
             )
             return
         self.dialog = QDialog()
+        self.dialog.setModal(True)
         self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setup_ui(self.dialog)
+        self.setup_ui()
         self.dialog.show()
 
-    def setup_ui(self, dialog):
-        dialog.setObjectName("Dialog")
-        dialog.resize(429, 353)
-        self.gridLayout = QGridLayout(dialog)
-        self.gridLayout.setObjectName("gridLayout")
-        self.scroll_area = QScrollArea(dialog)
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setObjectName("scroll_area")
-        self.scroll_area_widget_contents = QWidget()
-        self.scroll_area_widget_contents.setGeometry(QRect(0, 0, 409, 277))
-        self.scroll_area_widget_contents.setObjectName("scroll_area_widget_contents")
-        self.formLayout = QFormLayout(self.scroll_area_widget_contents)
-        self.formLayout.setObjectName("formLayout")
+    def setup_ui(self):
+        self.dialog.resize(429, 353)
+        grid_layout = QGridLayout(self.dialog)
+        scroll_area = QScrollArea(self.dialog)
+        scroll_area.setWidgetResizable(True)
+        scroll_area_widget_contents = QWidget()
+        scroll_area_widget_contents.setGeometry(QRect(0, 0, 409, 277))
+        scroll_area_widget_contents.setObjectName("scroll_area_widget_contents")
+        form_layout = QFormLayout(scroll_area_widget_contents)
 
         df = self.fed_data["data_frame"]
         target_label = self.fed_data["target_label"]
 
-        self.labels = []
+        labels = []
         self.input_widgets = []
 
         self.data_types = dict(df.dtypes)
@@ -155,35 +146,31 @@ class Predictor(Node):
         for i in range(len(df.columns)):
             if target_label == str(df.columns[i]):
                 continue
-            self.labels.append(QLabel(self.scroll_area_widget_contents))
-            self.labels[-1].setText("{} ({})".format(str(df.columns[i]), self.data_types[df.columns[i]]))
+            labels.append(QLabel(scroll_area_widget_contents))
+            labels[-1].setText("{} ({})".format(str(df.columns[i]), self.data_types[df.columns[i]]))
             if "object" in str(self.data_types[df.columns[i]]):
                 # TODO: categorical predictions
-                self.input_widgets.append(QComboBox(self.scroll_area_widget_contents))
+                self.input_widgets.append(QComboBox(scroll_area_widget_contents))
             else:
-                self.input_widgets.append(QLineEdit(self.scroll_area_widget_contents))
-            self.formLayout.addRow(self.labels[-1], self.input_widgets[-1])
+                self.input_widgets.append(QLineEdit(scroll_area_widget_contents))
+            form_layout.addRow(labels[-1], self.input_widgets[-1])
 
-        self.scroll_area.setWidget(self.scroll_area_widget_contents)
+        scroll_area.setWidget(scroll_area_widget_contents)
 
-        self.gridLayout.addWidget(self.scroll_area, 0, 0, 1, 1)
-        self.result_label = QLabel(dialog)
-        self.result_label.setObjectName("result_label")
-        self.gridLayout.addWidget(self.result_label, 1, 0, 1, 1)
-        self.buttonBox = QDialogButtonBox(dialog)
-        self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
-        self.buttonBox.setObjectName("buttonBox")
-        self.gridLayout.addWidget(self.buttonBox, 2, 0, 1, 1)
+        grid_layout.addWidget(scroll_area, 0, 0, 1, 1)
+        self.result_label = QLabel(self.dialog)
+        grid_layout.addWidget(self.result_label, 1, 0, 1, 1)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        grid_layout.addWidget(button_box, 2, 0, 1, 1)
 
-        _translate = QCoreApplication.translate
-
-        dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.dialog.setWindowTitle("Predictor")
         self.result_label.setText("Result not computed yet")
 
-        self.buttonBox.accepted.connect(self.predict)
-        self.buttonBox.rejected.connect(dialog.reject)
-        QMetaObject.connectSlotsByName(dialog)
+        button_box.accepted.connect(self.predict)
+        button_box.rejected.connect(self.dialog.reject)
+        QMetaObject.connectSlotsByName(self.dialog)
 
     def predict(self):
         v = []
@@ -201,111 +188,114 @@ class Predictor(Node):
         self.fed_data = df_or_model
 
 
-class Serializer(Node):
+class Serializer(OutputNode):
+    line_edit = None
+
     def __init__(self, scene):
-        super().__init__(scene, title="Serializer", inputs=1, outputs=0)
-        self.is_last = True
+        super().__init__(scene, title="Serializer")
         self.node_type = "visualisation.serializer"
 
     def run(self):
         self.dialog = QDialog()
         self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setupUi(self.dialog)
+        self.setup_ui()
         self.dialog.show()
 
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(398, 167)
-        self.buttonBox = QDialogButtonBox(Dialog)
-        self.buttonBox.setGeometry(QRect(30, 120, 341, 32))
-        self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
-        self.buttonBox.setObjectName("buttonBox")
-        self.widget = QWidget(Dialog)
-        self.widget.setGeometry(QRect(10, 30, 381, 81))
-        self.widget.setObjectName("widget")
-        self.verticalLayout = QVBoxLayout(self.widget)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.label = QLabel(self.widget)
-        self.label.setObjectName("label")
-        self.horizontalLayout.addWidget(self.label)
-        self.lineEdit = QLineEdit(self.widget)
-        self.lineEdit.setObjectName("lineEdit")
-        self.horizontalLayout.addWidget(self.lineEdit)
-        self.pushButton = QPushButton(self.widget)
-        self.pushButton.setObjectName("pushButton")
-        self.horizontalLayout.addWidget(self.pushButton)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.label_2 = QLabel(self.widget)
+    def setup_ui(self):
+        self.dialog.resize(398, 167)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setGeometry(QRect(30, 120, 341, 32))
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        widget = QWidget(self.dialog)
+        widget.setGeometry(QRect(10, 30, 381, 81))
+        vertical_layout = QVBoxLayout(widget)
+        vertical_layout.setContentsMargins(0, 0, 0, 0)
+        horizontal_layout = QHBoxLayout()
+        label = QLabel(widget)
+        horizontal_layout.addWidget(label)
+        self.line_edit = QLineEdit(widget)
+        horizontal_layout.addWidget(self.line_edit)
+        push_button = QPushButton(widget)
+        horizontal_layout.addWidget(push_button)
+        vertical_layout.addLayout(horizontal_layout)
+        label2 = QLabel(widget)
         font = QFont()
         font.setFamily("DejaVu Sans")
         font.setPointSize(10)
-        self.label_2.setFont(font)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout.addWidget(self.label_2)
+        label2.setFont(font)
+        vertical_layout.addWidget(label2)
 
-        self.retranslateUi(Dialog)
-        self.buttonBox.accepted.connect(self.save_object)
-        self.buttonBox.rejected.connect(Dialog.reject)
-        self.pushButton.clicked.connect(self.select_directory)
-        QMetaObject.connectSlotsByName(Dialog)
+        self.dialog.setWindowTitle("Dialog")
+        label.setText("Select Directory")
+        push_button.setText("Select")
+        label2.setText("Text file will be saved to the directory you select.")
 
-    def retranslateUi(self, Dialog):
-        _translate = QCoreApplication.translate
-        Dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label.setText(_translate("Dialog", "Select Directory"))
-        self.pushButton.setText(_translate("Dialog", "Select"))
-        self.label_2.setText(_translate("Dialog", "Text file will be saved to the directory you select."))
+        button_box.accepted.connect(self.save_object)
+        button_box.rejected.connect(self.dialog.reject)
+        push_button.clicked.connect(self.select_directory)
+        QMetaObject.connectSlotsByName(self.dialog)
 
     def select_directory(self):
-        self.directory, _ = QFileDialog.getSaveFileName(QMainWindow(), "Save as", QDir.homePath(), "Text files (*.txt)",
-                                                        options=QFileDialog.DontResolveSymlinks | QFileDialog.DontUseNativeDialog)
-        self.lineEdit.setText(self.directory)
+        directory, _ = QFileDialog.getSaveFileName(QMainWindow(), "Save as", QDir.homePath(), "Text files (*.txt)",
+                                                   options=QFileDialog.DontResolveSymlinks | QFileDialog.
+                                                   DontUseNativeDialog)
+        self.line_edit.setText(directory)
 
     def save_object(self):
-        with open(self.lineEdit.text(), "wb") as f:
+        directory = self.line_edit.text()
+        if not directory:
+            QMessageBox.warning(
+                self.dialog,
+                "Warning!",
+                "You need to specify a directory."
+            )
+            return
+        with open(directory, "wb") as f:
             pickle.dump(self.fed_data, f)
-        print("save completed")
+        self.dialog.accept()
 
     def feed(self, model):
         self.fed_data = model
 
 
-class SimplePlot(Node):
+class SimplePlot(OutputNode):
+    style_select_combo_box = None
+    check_boxes = None
+    title_name_edit = None
+    plot_button = None
+    combo_box_x = None
+    scroll_area_widget_contents = None
+
     def __init__(self, scene):
-        super().__init__(scene, title="Simple Plot", inputs=1, outputs=0)
-        self.is_last = True
+        super().__init__(scene, title="Simple Plot")
         self.node_type = "visualisation.simple"
 
     def run(self):
         self.dialog = QDialog()
         self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setup_ui(self.dialog)
+        self.setup_ui()
         self.dialog.show()
 
-    def setup_ui(self, dialog):
-        dialog.setObjectName("Dialog")
-        dialog.resize(606, 459)
-        self.gridLayout = QGridLayout(dialog)
-        self.verticalLayout = QVBoxLayout()
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.label = QLabel(dialog)
-        self.horizontalLayout_3.addWidget(self.label, 30)
-        self.combo_box_x = QComboBox(dialog)
-        self.horizontalLayout_3.addWidget(self.combo_box_x, 70)
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.label2 = QLabel(dialog)
-        self.horizontalLayout_2.addWidget(self.label2, 30)
-        self.scroll_area_y = QScrollArea(dialog)
-        self.scroll_area_y.setWidgetResizable(True)
+    def setup_ui(self):
+        self.dialog.resize(606, 459)
+        grid_layout = QGridLayout(self.dialog)
+        vertical_layout = QVBoxLayout()
+        horizontal_layout3 = QHBoxLayout()
+        label = QLabel(self.dialog)
+        horizontal_layout3.addWidget(label, 30)
+        self.combo_box_x = QComboBox(self.dialog)
+        horizontal_layout3.addWidget(self.combo_box_x, 70)
+        vertical_layout.addLayout(horizontal_layout3)
+        horizontal_layout2 = QHBoxLayout()
+        label2 = QLabel(self.dialog)
+        horizontal_layout2.addWidget(label2, 30)
+        scroll_area_y = QScrollArea(self.dialog)
+        scroll_area_y.setWidgetResizable(True)
         self.scroll_area_widget_contents = QWidget()
         self.scroll_area_widget_contents.setGeometry(QRect(0, 0, 532, 269))
 
-        self.vertical_layout5 = QVBoxLayout(self.scroll_area_widget_contents)
+        vertical_layout5 = QVBoxLayout(self.scroll_area_widget_contents)
         self.check_boxes = []
 
         self.combo_box_x.addItem("Not selected yet")
@@ -317,57 +307,57 @@ class SimplePlot(Node):
                 c.setText("{}".format(self.fed_data.columns[i]))
                 self.check_boxes.append(c)
                 self.combo_box_x.addItem(c.text())
-                self.vertical_layout5.addWidget(c)
+                vertical_layout5.addWidget(c)
 
-        self.scroll_area_y.setWidget(self.scroll_area_widget_contents)
-        self.horizontalLayout_2.addWidget(self.scroll_area_y, 70)
-        self.verticalLayout.addLayout(self.horizontalLayout_2)
-        self.horizontalLayout = QHBoxLayout()
-        self.label3 = QLabel(dialog)
-        self.horizontalLayout.addWidget(self.label3, 30)
-        self.title_name_edit = QLineEdit(dialog)
-        self.horizontalLayout.addWidget(self.title_name_edit, 70)
-        self.verticalLayout.addLayout(self.horizontalLayout)
-        self.horizontalLayout_4 = QHBoxLayout()
-        self.label4 = QLabel(dialog)
-        self.horizontalLayout_4.addWidget(self.label4, 30)
-        self.style_select_combo_box = QComboBox(dialog)
-        self.horizontalLayout_4.addWidget(self.style_select_combo_box, 70)
+        scroll_area_y.setWidget(self.scroll_area_widget_contents)
+        horizontal_layout2.addWidget(scroll_area_y, 70)
+        vertical_layout.addLayout(horizontal_layout2)
+        horizontal_layout = QHBoxLayout()
+        label3 = QLabel(self.dialog)
+        horizontal_layout.addWidget(label3, 30)
+        self.title_name_edit = QLineEdit(self.dialog)
+        horizontal_layout.addWidget(self.title_name_edit, 70)
+        vertical_layout.addLayout(horizontal_layout)
+        horizontal_layout4 = QHBoxLayout()
+        label4 = QLabel(self.dialog)
+        horizontal_layout4.addWidget(label4, 30)
+        self.style_select_combo_box = QComboBox(self.dialog)
+        horizontal_layout4.addWidget(self.style_select_combo_box, 70)
 
         self.style_select_combo_box.addItem("Default style")
         self.style_select_combo_box.addItems(plt.style.available)
 
-        self.verticalLayout.addLayout(self.horizontalLayout_4)
-        self.plot_button = QPushButton(dialog)
+        vertical_layout.addLayout(horizontal_layout4)
+        self.plot_button = QPushButton(self.dialog)
         self.plot_button.setEnabled(False)
-        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.plot_button.sizePolicy().hasHeightForWidth())
-        self.plot_button.setSizePolicy(sizePolicy)
-        self.verticalLayout.addWidget(self.plot_button)
-        self.gridLayout.addLayout(self.verticalLayout, 0, 0, 1, 1)
-        self.button_box = QDialogButtonBox(dialog)
-        self.button_box.setOrientation(Qt.Horizontal)
-        self.button_box.setStandardButtons(QDialogButtonBox.Cancel|QDialogButtonBox.Ok)
-        self.gridLayout.addWidget(self.button_box, 1, 0, 1, 1)
+        size_policy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Fixed)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(self.plot_button.sizePolicy().hasHeightForWidth())
+        self.plot_button.setSizePolicy(size_policy)
+        vertical_layout.addWidget(self.plot_button)
+        grid_layout.addLayout(vertical_layout, 0, 0, 1, 1)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        grid_layout.addWidget(button_box, 1, 0, 1, 1)
 
-        dialog.setWindowTitle("Simple Plot")
-        self.label.setText("X axis")
-        self.label2.setText("Y axis")
-        self.label3.setText("Title name")
-        self.label4.setText("Style select")
+        self.dialog.setWindowTitle("Simple Plot")
+        label.setText("X axis")
+        label2.setText("Y axis")
+        label3.setText("Title name")
+        label4.setText("Style select")
         self.plot_button.setText("Plot")
 
-        self.button_box.accepted.connect(dialog.accept)
-        self.button_box.rejected.connect(dialog.reject)
+        button_box.accepted.connect(self.dialog.accept)
+        button_box.rejected.connect(self.dialog.reject)
         self.plot_button.clicked.connect(self.plot_data)
         self.combo_box_x.currentTextChanged.connect(self.x_axis_changed)
 
         for checkbox in self.check_boxes:
             checkbox.clicked.connect(self.checkbox_selected)
 
-        QMetaObject.connectSlotsByName(dialog)
+        QMetaObject.connectSlotsByName(self.dialog)
 
     def plot_data(self):
         if self.style_select_combo_box.currentText() != "Default style":
@@ -414,15 +404,13 @@ class SimplePlot(Node):
         self.fed_data = model
 
 
-class ScatterPlot(Node):
+class ScatterPlot(OutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="Scatter Plot", inputs=1, outputs=0)
-        self.is_last = True
+        super().__init__(scene, title="Scatter Plot")
         self.node_type = "visualisation.scatter"
 
 
-class Histogram(Node):
+class Histogram(OutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="Histogram", inputs=1, outputs=0)
-        self.is_last = True
+        super().__init__(scene, title="Histogram")
         self.node_type = "visualisation.histogram"

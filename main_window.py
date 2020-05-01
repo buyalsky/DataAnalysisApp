@@ -15,29 +15,18 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        # Main UI code goes here
-
-        ######################
-        # The central widget #
-        ######################
-        #self.textedit = QTextEdit()
         self.main_widget = MainWidget(parent_window=self)
         self.setCentralWidget(self.main_widget)
 
-        #################
-        # The Statusbar #
-        #################
         self.statusBar().showMessage('Ready')
 
-        # add widgets to statusbar
         self.statusbar_label = QLabel("0/0")
 
         self.statusBar().addPermanentWidget(self.statusbar_label)
 
-        ###############j
-        # The menubar #
-        ###############
         menubar = self.menuBar()
+
+        self.setWindowTitle("Data Analysis App")
 
         # add submenus to a menu
         file_menu = menubar.addMenu('File')
@@ -57,13 +46,9 @@ class MainWindow(QMainWindow):
         redo_action = QAction('Redo', self)
         edit_menu.addAction(redo_action)
 
-        ############################
-        # The Toolbar and QActions #
-        ############################
-
         toolbar = self.addToolBar('File')
-        #toolbar.addAction(open_action)
-        #toolbar.addAction("Save")
+        # toolbar.addAction(open_action)
+        # toolbar.addAction("Save")
 
         toolbar.setMovable(False)
         toolbar.setFloatable(False)
@@ -230,7 +215,6 @@ class MainWindow(QMainWindow):
             l.append(next_node)
             if next_node.is_last:
                 break
-
 
     def feed_next_node(self, node):
         for ordered_nodes in self.ordered_nodes:

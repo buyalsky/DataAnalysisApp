@@ -5,7 +5,7 @@ import logging
 
 from socket_ import GraphicSocket
 from edge import GraphicEdge
-from edge import Edge, EDGE_TYPE_BEZIER
+from edge import Edge
 from cutter_line import CutLine
 
 logger = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ class GraphicsView(QGraphicsView):
         self.zoom = 10
         self.zoomStep = 1
         self.zoomRange = [0, 10]
+        self.setStyleSheet("selection-background-color: rgb(255, 255, 255);")
 
         # cutline
         self.cutline = CutLine()
@@ -261,7 +262,7 @@ class GraphicsView(QGraphicsView):
         self.previousEdge = item.socket.edge
         self.last_start_socket = item.socket
 
-        self.dragEdge = Edge(self.graphic_scene.scene, item.socket, None, EDGE_TYPE_BEZIER)
+        self.dragEdge = Edge(self.graphic_scene.scene, item.socket, None)
         logger.debug('View::edgeDragStart ~   dragEdge:'.format(self.dragEdge))
 
     # called when we append an edge

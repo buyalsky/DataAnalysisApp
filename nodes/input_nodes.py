@@ -37,15 +37,15 @@ class CsvLoader(InputNode):
         super().__init__(scene, title="Csv Loader")
         self.node_type = "loader.csv"
 
-    def setup_ui(self, dialog):
-        dialog.setObjectName("Dialog")
-        dialog.resize(372, 324)
-        self.button_box = QDialogButtonBox(dialog)
+    def setup_ui(self):
+        self.dialog.setObjectName("Dialog")
+        self.dialog.resize(372, 324)
+        self.button_box = QDialogButtonBox(self.dialog)
         self.button_box.setGeometry(QRect(10, 280, 341, 32))
         self.button_box.setOrientation(Qt.Horizontal)
         self.button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.button_box.setObjectName("buttonBox")
-        self.widget = QWidget(dialog)
+        self.widget = QWidget(self.dialog)
         self.widget.setGeometry(QRect(20, 30, 331, 41))
         self.widget.setObjectName("widget")
         self.horizontal_layout = QHBoxLayout(self.widget)
@@ -60,7 +60,7 @@ class CsvLoader(InputNode):
         self.push_button = QPushButton(self.widget)
         self.push_button.setObjectName("pushButton")
         self.horizontal_layout.addWidget(self.push_button)
-        self.widget1 = QWidget(dialog)
+        self.widget1 = QWidget(self.dialog)
         self.widget1.setGeometry(QRect(20, 80, 331, 161))
         self.widget1.setObjectName("widget1")
         self.vertical_layout = QVBoxLayout(self.widget1)
@@ -113,7 +113,7 @@ class CsvLoader(InputNode):
         self.vertical_layout.addLayout(self.horizontal_layout5)
 
         _translate = QCoreApplication.translate
-        dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.dialog.setWindowTitle(_translate("Dialog", "Dialog"))
         self.label.setText(_translate("Dialog", "Select file"))
         self.push_button.setText(_translate("Dialog", "Select"))
         self.label2.setText(_translate("Dialog", "Separator"))
@@ -131,10 +131,10 @@ class CsvLoader(InputNode):
         self.combo_box4.setItemText(2, _translate("Dialog", "utf-32"))
 
         self.button_box.accepted.connect(self.return_file)
-        self.button_box.rejected.connect(dialog.reject)
+        self.button_box.rejected.connect(self.dialog.reject)
         self.push_button.clicked.connect(self.file_select_clicked)
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
-        QMetaObject.connectSlotsByName(dialog)
+        QMetaObject.connectSlotsByName(self.dialog)
 
     def file_select_clicked(self):
         print("clicked")
@@ -179,15 +179,15 @@ class ExcelLoader(InputNode):
         super().__init__(scene, title="Excel Loader")
         self.node_type = "loader.excel"
 
-    def setup_ui(self, dialog):
-        dialog.setObjectName("Dialog")
-        dialog.resize(372, 134)
-        self.button_box = QDialogButtonBox(dialog)
+    def setup_ui(self):
+        self.dialog.setObjectName("Dialog")
+        self.dialog.resize(372, 134)
+        self.button_box = QDialogButtonBox(self.dialog)
         self.button_box.setGeometry(QRect(10, 80, 341, 32))
         self.button_box.setOrientation(Qt.Horizontal)
         self.button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.button_box.setObjectName("buttonBox")
-        self.widget = QWidget(dialog)
+        self.widget = QWidget(self.dialog)
         self.widget.setGeometry(QRect(20, 30, 331, 41))
         self.widget.setObjectName("widget")
         self.horizontal_layout = QHBoxLayout(self.widget)
@@ -204,14 +204,14 @@ class ExcelLoader(InputNode):
         self.horizontal_layout.addWidget(self.push_button)
 
         _translate = QCoreApplication.translate
-        dialog.setWindowTitle(_translate("Dialog", "Dialog"))
+        self.dialog.setWindowTitle(_translate("Dialog", "Dialog"))
         self.label.setText(_translate("Dialog", "Select file"))
         self.push_button.setText(_translate("Dialog", "Select"))
 
         self.button_box.accepted.connect(self.return_file)
-        self.button_box.rejected.connect(dialog.reject)
+        self.button_box.rejected.connect(self.dialog.reject)
         self.push_button.clicked.connect(self.file_select_clicked)
-        QMetaObject.connectSlotsByName(dialog)
+        QMetaObject.connectSlotsByName(self.dialog)
 
     def file_select_clicked(self):
         print("clicked")
@@ -239,10 +239,10 @@ class XmlLoader(InputNode):
         super().__init__(scene, title="Xml Loader")
         self.node_type = "loader.xml"
 
-    def setup_ui(self, dialog):
-        dialog.setObjectName("Dialog")
-        dialog.resize(461, 509)
-        self.widget = QWidget(dialog)
+    def setup_ui(self):
+        self.dialog.setObjectName("Dialog")
+        self.dialog.resize(461, 509)
+        self.widget = QWidget(self.dialog)
         self.widget.setGeometry(QRect(30, 40, 401, 421))
         self.widget.setObjectName("widget")
         self.vertical_layout2 = QVBoxLayout(self.widget)
@@ -272,17 +272,15 @@ class XmlLoader(InputNode):
         self.buttonBox.setObjectName("buttonBox")
         self.vertical_layout.addWidget(self.buttonBox)
         self.vertical_layout2.addLayout(self.vertical_layout)
-
-        _translate = QCoreApplication.translate
-        dialog.setWindowTitle(_translate("Dialog", "Dialog"))
-        self.label.setText(_translate("Dialog", "Select File"))
-        self.push_button.setText(_translate("Dialog", "PushButton"))
-        self.tree_widget.headerItem().setText(0, _translate("Dialog", "1"))
+        self.dialog.setWindowTitle("Dialog")
+        self.label.setText("Select File")
+        self.push_button.setText("PushButton")
+        self.tree_widget.headerItem().setText(0, "1")
 
         self.buttonBox.accepted.connect(self.print_current)
-        self.buttonBox.rejected.connect(dialog.reject)
+        self.buttonBox.rejected.connect(self.dialog.reject)
         self.push_button.clicked.connect(self.file_select_clicked)
-        QMetaObject.connectSlotsByName(dialog)
+        QMetaObject.connectSlotsByName(self.dialog)
 
     def create_dataframe(self):
         self.data = {}
@@ -430,21 +428,15 @@ class Deserializer(InputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Object Loader")
 
-    def run(self):
-        self.dialog = QDialog()
-        self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setupUi(self.dialog)
-        self.dialog.show()
-
-    def setupUi(self, Dialog):
-        Dialog.setObjectName("Dialog")
-        Dialog.resize(398, 167)
-        self.buttonBox = QDialogButtonBox(Dialog)
+    def setupUi(self):
+        self.dialog.setObjectName("Dialog")
+        self.dialog.resize(398, 167)
+        self.buttonBox = QDialogButtonBox(self.dialog)
         self.buttonBox.setGeometry(QRect(30, 120, 341, 32))
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
-        self.widget = QWidget(Dialog)
+        self.widget = QWidget(self.dialog)
         self.widget.setGeometry(QRect(10, 30, 381, 81))
         self.widget.setObjectName("widget")
         self.verticalLayout = QVBoxLayout(self.widget)
@@ -470,15 +462,15 @@ class Deserializer(InputNode):
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
 
-        Dialog.setWindowTitle("Dialog")
+        self.dialog.setWindowTitle("Deserializer")
         self.label.setText("Select Directory")
         self.pushButton.setText("Select")
         self.label_2.setText("Text file will be saved to the directory you select.")
 
         self.buttonBox.accepted.connect(self.save_object)
-        self.buttonBox.rejected.connect(Dialog.reject)
+        self.buttonBox.rejected.connect(self.dialog.reject)
         self.pushButton.clicked.connect(self.select_directory)
-        QMetaObject.connectSlotsByName(Dialog)
+        QMetaObject.connectSlotsByName(self.dialog)
 
     def return_file(self):
         self.dialog.accept()
