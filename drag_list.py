@@ -16,7 +16,7 @@ class DragList(QListWidget):
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setDragEnabled(True)
 
-    def add_my_items(self, items=None):
+    def add_items(self, items=None):
         for item in items:
             self.addMyItem(item, "crimson_sharks.png")
 

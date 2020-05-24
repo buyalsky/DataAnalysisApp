@@ -19,13 +19,6 @@ class TextOutput(OutputNode):
         super().__init__(scene, title="Text Output")
         self.node_type = "visualisation.text"
 
-    def run(self):
-        self.dialog = QDialog()
-        self.dialog.setModal(True)
-        self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setup_ui()
-        self.dialog.show()
-
     def setup_ui(self):
         self.dialog.resize(398, 167)
         button_box = QDialogButtonBox(self.dialog)
@@ -76,7 +69,15 @@ class TextOutput(OutputNode):
                 "You need to specify a directory."
             )
             return
-        if isinstance(self.fed_data, dict):
+
+        k = self.fed_data.keys()
+        print("Keys are: {}".format(k))
+        fd = open(directory, "w+")
+
+        if "data_frame" in k:
+            fd.write(str(self.fed_data["data_frame"].describe()))
+
+        if "model" in k and "test_data" in k:
             from sklearn.metrics import confusion_matrix
             from sklearn.metrics import classification_report
 
@@ -86,44 +87,26 @@ class TextOutput(OutputNode):
             y_predicted = model.predict(X_test)
             conf_matrix = confusion_matrix(y_test, y_predicted)
             report = classification_report(y_test, y_predicted)
-            with open(directory, "w+") as fd:
-                fd.write("Confusion Matrix:\n")
-                fd.write(str(conf_matrix))
-                fd.write("\nAccuracy Score {}".format(model.score(X_test, y_test)))
-                fd.write("\nClassification Report:\n")
-                fd.write(report)
 
-        else:
-            with open(directory, "w+") as fd:
-                fd.write(str(self.fed_data.describe()))
+            fd.write("Confusion Matrix:\n")
+            fd.write(str(conf_matrix))
+            fd.write("\nAccuracy Score {}".format(model.score(X_test, y_test)))
+            fd.write("\nClassification Report:\n")
+            fd.write(report)
+
+        fd.close()
         print("save completed")
         self.dialog.accept()
-
-    def feed(self, df_or_model):
-        self.fed_data = df_or_model
 
 
 class Predictor(OutputNode):
     data_types = None
     result_label = None
     input_widgets = None
+    required_keys = ["data_frame", "model", "target_label"]
 
     def __init__(self, scene):
         super().__init__(scene, title="Predictor")
-
-    def run(self):
-        if not self.fed_data or not isinstance(self.fed_data, dict):
-            QMessageBox.about(
-                self.scene.parent_widget,
-                "Warning!",
-                "You need to complete preceding nodes first."
-            )
-            return
-        self.dialog = QDialog()
-        self.dialog.setModal(True)
-        self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setup_ui()
-        self.dialog.show()
 
     def setup_ui(self):
         self.dialog.resize(429, 353)
@@ -132,7 +115,6 @@ class Predictor(OutputNode):
         scroll_area.setWidgetResizable(True)
         scroll_area_widget_contents = QWidget()
         scroll_area_widget_contents.setGeometry(QRect(0, 0, 409, 277))
-        scroll_area_widget_contents.setObjectName("scroll_area_widget_contents")
         form_layout = QFormLayout(scroll_area_widget_contents)
 
         df = self.fed_data["data_frame"]
@@ -148,9 +130,11 @@ class Predictor(OutputNode):
                 continue
             labels.append(QLabel(scroll_area_widget_contents))
             labels[-1].setText("{} ({})".format(str(df.columns[i]), self.data_types[df.columns[i]]))
-            if "object" in str(self.data_types[df.columns[i]]):
+            if "object" in str(self.data_types[df.columns[i]]) or "category" in str(self.data_types[df.columns[i]]):
                 # TODO: categorical predictions
                 self.input_widgets.append(QComboBox(scroll_area_widget_contents))
+                for item in set(df[df.columns[i]]):
+                    self.input_widgets[-1].addItem(str(item))
             else:
                 self.input_widgets.append(QLineEdit(scroll_area_widget_contents))
             form_layout.addRow(labels[-1], self.input_widgets[-1])
@@ -181,6 +165,8 @@ class Predictor(OutputNode):
                 v.append(float(widget.text()))
             elif "int" in str(self.data_types[df.columns[i]]):
                 v.append(float(widget.text()))
+            else:
+                v.append(widget.currentText())
         result = model.predict([v])
         self.result_label.setText("Result is: {}".format(result[0]))
 
@@ -194,12 +180,6 @@ class Serializer(OutputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Serializer")
         self.node_type = "visualisation.serializer"
-
-    def run(self):
-        self.dialog = QDialog()
-        self.dialog.setWindowFlags(Qt.WindowTitleHint)
-        self.setup_ui()
-        self.dialog.show()
 
     def setup_ui(self):
         self.dialog.resize(398, 167)
@@ -298,13 +278,15 @@ class SimplePlot(OutputNode):
         vertical_layout5 = QVBoxLayout(self.scroll_area_widget_contents)
         self.check_boxes = []
 
+        self.df = self.fed_data["data_frame"]
+
         self.combo_box_x.addItem("Not selected yet")
-        data_types = dict(self.fed_data.dtypes)
-        for i in range(len(self.fed_data.columns)):
-            data_type = str(data_types[self.fed_data.columns[i]])
+        data_types = dict(self.df.dtypes)
+        for i in range(len(self.df.columns)):
+            data_type = str(data_types[self.df.columns[i]])
             if "int" in data_type or "float" in data_type:
                 c = QCheckBox(self.scroll_area_widget_contents)
-                c.setText("{}".format(self.fed_data.columns[i]))
+                c.setText("{}".format(self.df.columns[i]))
                 self.check_boxes.append(c)
                 self.combo_box_x.addItem(c.text())
                 vertical_layout5.addWidget(c)
@@ -363,10 +345,10 @@ class SimplePlot(OutputNode):
         if self.style_select_combo_box.currentText() != "Default style":
             plt.style.use(self.style_select_combo_box.currentText())
 
-        x_axis = self.fed_data[self.combo_box_x.currentText()]
+        x_axis = self.df[self.combo_box_x.currentText()]
         for check_box in self.check_boxes:
             if check_box.isChecked():
-                plt.plot(x_axis, self.fed_data[check_box.text()], label=check_box.text())
+                plt.plot(x_axis, self.df[check_box.text()], label=check_box.text())
 
         if self.title_name_edit.text():
             plt.title(self.title_name_edit.text())
@@ -400,17 +382,332 @@ class SimplePlot(OutputNode):
             else:
                 checkbox.setEnabled(True)
 
-    def feed(self, model):
-        self.fed_data = model
-
 
 class ScatterPlot(OutputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Scatter Plot")
         self.node_type = "visualisation.scatter"
 
+    def setup_ui(self):
+        self.dialog.resize(443, 248)
+        grid_layout = QGridLayout(self.dialog)
+        horizontal_layout = QHBoxLayout()
+        vertical_layout_labels = QVBoxLayout()
+        label = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label)
+        label2 = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label2)
+        label3 = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label3)
+        label4 = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label4)
+        horizontal_layout.addLayout(vertical_layout_labels)
+        vertical_layout_inputs = QVBoxLayout()
+        self.combo_box_x = QComboBox(self.dialog)
+        vertical_layout_inputs.addWidget(self.combo_box_x)
+        self.combo_box_y = QComboBox(self.dialog)
+        vertical_layout_inputs.addWidget(self.combo_box_y)
+        self.df = self.fed_data["data_frame"]
+
+        self.combo_box_x.addItem("Not selected yet")
+        self.combo_box_y.addItem("Not selected yet")
+
+        data_types = dict(self.df.dtypes)
+        for i in range(len(self.df.columns)):
+            data_type = str(data_types[self.df.columns[i]])
+            if "int" in data_type or "float" in data_type:
+                c = "{}".format(self.df.columns[i])
+                self.combo_box_x.addItem(c)
+                self.combo_box_y.addItem(c)
+
+        self.line_title_name = QLineEdit(self.dialog)
+        vertical_layout_inputs.addWidget(self.line_title_name)
+
+        self.style_select_combo_box = QComboBox(self.dialog)
+        self.style_select_combo_box.addItem("Default style")
+        self.style_select_combo_box.addItems(plt.style.available)
+        vertical_layout_inputs.addWidget(self.style_select_combo_box)
+        horizontal_layout.addLayout(vertical_layout_inputs)
+        grid_layout.addLayout(horizontal_layout, 0, 0, 1, 1)
+        plot_button = QPushButton(self.dialog)
+        grid_layout.addWidget(plot_button, 1, 0, 1, 1)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        grid_layout.addWidget(button_box, 2, 0, 1, 1)
+
+        self.dialog.setWindowTitle("Scatter Plot")
+        label.setText("X axis")
+        label2.setText("Y axis")
+        label3.setText("Title name")
+        label4.setText("Style select")
+        plot_button.setText("Plot")
+
+        plot_button.clicked.connect(self.plot_data)
+        button_box.accepted.connect(self.dialog.accept)
+        button_box.rejected.connect(self.dialog.reject)
+        QMetaObject.connectSlotsByName(self.dialog)
+
+    def plot_data(self):
+        if self.style_select_combo_box.currentText() != "Default style":
+            plt.style.use(self.style_select_combo_box.currentText())
+
+        x_axis = self.df[self.combo_box_x.currentText()]
+        y_axis = self.df[self.combo_box_y.currentText()]
+
+        plt.scatter(x_axis, y_axis)
+
+        if self.line_title_name.text():
+            plt.title(self.line_title_name.text())
+
+        plt.legend()
+
+        plt.xlabel(self.combo_box_x.currentText())
+        plt.ylabel(self.combo_box_y.currentText())
+
+        plt.tight_layout()
+
+        plt.show()
+
+
+class PieChart(OutputNode):
+    def __init__(self, scene):
+        super().__init__(scene, title="Pie Chart")
+        self.node_type = "visualisation.pie_chart"
+
+    def run(self):
+        if not isinstance(self.fed_data, dict):
+            QMessageBox.warning(
+                self.scene.parent_widget,
+                "Warning!",
+                "You need to complete preceding nodes first!"
+            )
+            return
+        else:
+            k = self.fed_data.keys()
+            for requirement in self.required_keys:
+                if requirement not in k:
+                    QMessageBox.warning(
+                        self.scene.parent_widget,
+                        "Warning!",
+                        "This node does not match with its previous node!"
+                    )
+                    return
+        self.dialog = QDialog()
+        self.dialog.setWindowFlags(Qt.WindowTitleHint)
+        self.setup_ui()
+        self.dialog.show()
+
+    def setup_ui(self):
+        self.dialog.resize(410, 203)
+        grid_layout = QGridLayout(self.dialog)
+        label_info = QLabel(self.dialog)
+        grid_layout.addWidget(label_info, 0, 0, 1, 1)
+        horizontal_layout = QHBoxLayout()
+        vertical_layout_labels = QVBoxLayout()
+        label = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label)
+        label2 = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label2)
+        label3 = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label3)
+        horizontal_layout.addLayout(vertical_layout_labels)
+        vertical_layout_inputs = QVBoxLayout()
+        self.combo_box_column = QComboBox(self.dialog)
+
+        self.df = self.fed_data["data_frame"]
+        data_types = dict(self.df.dtypes)
+        for i in range(len(self.df.columns)):
+            if "object" in str(data_types[self.df.columns[i]]) or "category" in str(data_types[self.df.columns[i]]):
+                self.combo_box_column.addItem(str(self.df.columns[i]))
+        vertical_layout_inputs.addWidget(self.combo_box_column)
+        self.line_title_name = QLineEdit(self.dialog)
+        vertical_layout_inputs.addWidget(self.line_title_name)
+        self.combo_box_style = QComboBox(self.dialog)
+        self.combo_box_style.addItem("Default")
+        self.combo_box_style.addItems(plt.style.available)
+        vertical_layout_inputs.addWidget(self.combo_box_style)
+        horizontal_layout.addLayout(vertical_layout_inputs)
+        grid_layout.addLayout(horizontal_layout, 1, 0, 1, 1)
+        plot_button = QPushButton(self.dialog)
+        grid_layout.addWidget(plot_button, 2, 0, 1, 1)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        grid_layout.addWidget(button_box, 3, 0, 1, 1)
+
+        self.dialog.setWindowTitle("Pie Chart")
+        label_info.setText("Only categorical columns can be selected")
+        label.setText("Column to plot")
+        label2.setText("Title name")
+        label3.setText("Style select")
+        plot_button.setText("Plot")
+        plot_button.clicked.connect(self.plot_pie_chart)
+        button_box.accepted.connect(self.dialog.accept)
+        button_box.rejected.connect(self.dialog.reject)
+        QMetaObject.connectSlotsByName(self.dialog)
+
+    def plot_pie_chart(self):
+        from matplotlib import pyplot as plt
+        labels = []
+        counts = []
+        for label, count in self.df[self.combo_box_column.currentText()].value_counts().iteritems():
+            labels.append(str(label))
+            counts.append(count)
+
+        if self.combo_box_style.currentText() != "Default":
+            plt.style.use(self.combo_box_style.currentText())
+        plt.title(self.line_title_name.text() if self.line_title_name.text() else self.combo_box_column.currentText())
+        plt.pie(counts, labels=labels)
+        plt.tight_layout()
+        plt.show()
+
 
 class Histogram(OutputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Histogram")
         self.node_type = "visualisation.histogram"
+
+    def run(self):
+        if not isinstance(self.fed_data, dict):
+            QMessageBox.warning(
+                self.scene.parent_widget,
+                "Warning!",
+                "You need to complete preceding nodes first!"
+            )
+            return
+        else:
+            k = self.fed_data.keys()
+            for requirement in self.required_keys:
+                if requirement not in k:
+                    QMessageBox.warning(
+                        self.scene.parent_widget,
+                        "Warning!",
+                        "This node does not match with its previous node!"
+                    )
+                    return
+        self.dialog = QDialog()
+        self.dialog.setWindowFlags(Qt.WindowTitleHint)
+        self.setup_ui()
+        self.dialog.show()
+
+    def setup_ui(self):
+        self.dialog.resize(410, 203)
+        grid_layout = QGridLayout(self.dialog)
+        label_info = QLabel(self.dialog)
+        grid_layout.addWidget(label_info, 0, 0, 1, 1)
+        horizontal_layout = QHBoxLayout()
+        vertical_layout_labels = QVBoxLayout()
+        label = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label)
+        label2 = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label2)
+        label3 = QLabel(self.dialog)
+        vertical_layout_labels.addWidget(label3)
+        horizontal_layout.addLayout(vertical_layout_labels)
+        vertical_layout_inputs = QVBoxLayout()
+        self.combo_box_column = QComboBox(self.dialog)
+
+        self.df = self.fed_data["data_frame"]
+        data_types = dict(self.df.dtypes)
+        for i in range(len(self.df.columns)):
+            if "int" in str(data_types[self.df.columns[i]]) or "float" in str(data_types[self.df.columns[i]]):
+                self.combo_box_column.addItem(str(self.df.columns[i]))
+        vertical_layout_inputs.addWidget(self.combo_box_column)
+        self.line_title_name = QLineEdit(self.dialog)
+        vertical_layout_inputs.addWidget(self.line_title_name)
+        self.combo_box_style = QComboBox(self.dialog)
+        self.combo_box_style.addItem("Default")
+        self.combo_box_style.addItems(plt.style.available)
+        vertical_layout_inputs.addWidget(self.combo_box_style)
+        horizontal_layout.addLayout(vertical_layout_inputs)
+        grid_layout.addLayout(horizontal_layout, 1, 0, 1, 1)
+        plot_button = QPushButton(self.dialog)
+        grid_layout.addWidget(plot_button, 2, 0, 1, 1)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        grid_layout.addWidget(button_box, 3, 0, 1, 1)
+
+        self.dialog.setWindowTitle("Histogram")
+        label_info.setText("Only numerical columns can be selected")
+        label.setText("Column to plot")
+        label2.setText("Title name")
+        label3.setText("Style select")
+        plot_button.setText("Plot")
+        plot_button.clicked.connect(self.plot_histogram)
+        button_box.accepted.connect(self.dialog.accept)
+        button_box.rejected.connect(self.dialog.reject)
+        QMetaObject.connectSlotsByName(self.dialog)
+
+    def plot_histogram(self):
+        from matplotlib import pyplot as plt
+        """
+        labels = []
+        counts = []
+        for label, count in self.df[self.combo_box_column.currentText()].value_counts().iteritems():
+            labels.append(str(label))
+            counts.append(count)
+        """
+
+        if self.combo_box_style.currentText() != "Default":
+            plt.style.use(self.combo_box_style.currentText())
+        plt.title(self.line_title_name.text() if self.line_title_name.text() else self.combo_box_column.currentText())
+        plt.hist(self.df[self.combo_box_column.currentText()], edgecolor='black')
+        plt.tight_layout()
+        plt.show()
+
+
+class CsvSaver(OutputNode):
+    line_edit = None
+
+    def __init__(self, scene):
+        super().__init__(scene, title="Csv Saver")
+        self.node_type = "visualisation.csv_saver"
+
+    def setup_ui(self):
+        self.dialog.resize(398, 167)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setGeometry(QRect(30, 120, 341, 32))
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        widget = QWidget(self.dialog)
+        widget.setGeometry(QRect(10, 30, 381, 81))
+        vertical_layout = QVBoxLayout(widget)
+        vertical_layout.setContentsMargins(0, 0, 0, 0)
+        horizontal_layout = QHBoxLayout()
+        label = QLabel(widget)
+        horizontal_layout.addWidget(label)
+        self.line_edit = QLineEdit(widget)
+        horizontal_layout.addWidget(self.line_edit)
+        push_button = QPushButton(widget)
+        horizontal_layout.addWidget(push_button)
+        vertical_layout.addLayout(horizontal_layout)
+        label_info = QLabel(widget)
+        font = QFont()
+        font.setFamily("DejaVu Sans")
+        font.setPointSize(10)
+        label_info.setFont(font)
+        vertical_layout.addWidget(label_info)
+
+        self.dialog.setWindowTitle("Csv Saver")
+        label.setText("Select Directory")
+        push_button.setText("Select")
+        label_info.setText("Csv file will be saved to the directory you select.")
+
+        button_box.accepted.connect(self.save_file)
+        button_box.rejected.connect(self.dialog.reject)
+        push_button.clicked.connect(self.select_directory)
+        QMetaObject.connectSlotsByName(self.dialog)
+
+    def select_directory(self):
+        directory, _ = QFileDialog.getSaveFileName(QMainWindow(), "Save as", QDir.homePath(),
+                                                   "Comma separated values files (*.csv)",
+                                                   options=QFileDialog.DontResolveSymlinks | QFileDialog.
+                                                   DontUseNativeDialog)
+        self.line_edit.setText(directory)
+
+    def save_file(self):
+        self.fed_data["data_frame"].to_csv(self.line_edit.text())
+        self.dialog.accept()
+

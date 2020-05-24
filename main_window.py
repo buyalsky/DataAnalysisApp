@@ -1,5 +1,5 @@
 import sys
-import copy
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -10,7 +10,6 @@ from node import Node, NodeDemux
 
 
 class MainWindow(QMainWindow):
-
     settings = QSettings('Burak Dursunlar', 'Data analysis app')
 
     def __init__(self):
@@ -25,6 +24,8 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.statusbar_label)
 
         menubar = self.menuBar()
+
+        self.is_ordered = False
 
         self.setWindowTitle("Data Analysis App")
 
@@ -65,6 +66,7 @@ class MainWindow(QMainWindow):
         dock_classification_widget = QWidget(self)
         dock_clustering_widget = QWidget(self)
         dock_visualization_widget = QWidget(self)
+        dock_demux_widget = QWidget(self)
 
         nodes_list_loaders = DragList()
         nodes_list_preprocess = DragList()
@@ -72,14 +74,16 @@ class MainWindow(QMainWindow):
         nodes_list_classification = DragList()
         nodes_list_clustering = DragList()
         nodes_list_visualization = DragList()
+        nodes_list_demux = DragList()
 
-        nodes_list_loaders.add_my_items(['Csv Loader', 'Excel Loader', "Xml Loader", "Deserializer"])
-        nodes_list_preprocess.add_my_items(['Attribute Remover', 'Filter'])
-        nodes_list_regression.add_my_items(['Linear Regression', "1x2 Demux", "1x3 Demux", "1x4 Demux", "1x5 Demux"])
-        nodes_list_classification.add_my_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree', 'Decision Tree'])
-        nodes_list_clustering.add_my_items(['K-means', "Hierarchical"])
-        nodes_list_visualization.add_my_items(["Text output", "Scatter plot", "Histogram", "Predictor", "Serializer",
-                                               "Simple Plot"])
+        nodes_list_loaders.add_items(['Csv Loader', 'Excel Loader', "Xml Loader", "Deserializer"])
+        nodes_list_preprocess.add_items(['Attribute Remover', 'Filter'])
+        nodes_list_regression.add_items(['Linear Regression'])
+        nodes_list_classification.add_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree'])
+        nodes_list_clustering.add_items(['K-Means', "Hierarchical"])
+        nodes_list_visualization.add_items(["Text output", "Scatter plot", "Pie Chart", "Predictor", "Serializer",
+                                            "Simple Plot", "Histogram", "Csv Saver"])
+        nodes_list_demux.add_items(["1x2 Demux", "1x3 Demux", "1x4 Demux", "1x5 Demux"])
 
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
@@ -96,6 +100,7 @@ class MainWindow(QMainWindow):
         dock_layout_classification = QHBoxLayout()
         dock_layout_clustering = QHBoxLayout()
         dock_layout_visualization = QHBoxLayout()
+        dock_layout_demux = QHBoxLayout()
 
         dock_loaders_widget.setLayout(dock_layout_loaders)
         dock_preprocess_widget.setLayout(dock_layout_preprocess)
@@ -103,8 +108,9 @@ class MainWindow(QMainWindow):
         dock_classification_widget.setLayout(dock_layout_classification)
         dock_clustering_widget.setLayout(dock_layout_clustering)
         dock_visualization_widget.setLayout(dock_layout_visualization)
+        dock_demux_widget.setLayout(dock_layout_demux)
 
-        #dock_layout.addWidget(tab_widget)
+        # dock_layout.addWidget(tab_widget)
 
         dock_layout_loaders.addWidget(nodes_list_loaders)
         dock_layout_preprocess.addWidget(nodes_list_preprocess)
@@ -112,13 +118,15 @@ class MainWindow(QMainWindow):
         dock_layout_classification.addWidget(nodes_list_classification)
         dock_layout_clustering.addWidget(nodes_list_clustering)
         dock_layout_visualization.addWidget(nodes_list_visualization)
+        dock_layout_demux.addWidget(nodes_list_demux)
 
-        tab_widget.addTab(dock_loaders_widget, 'Tab 1')
-        tab_widget.addTab(dock_preprocess_widget, 'Tab 2')
-        tab_widget.addTab(dock_regression_widget, 'Tab 3')
-        tab_widget.addTab(dock_classification_widget, 'Tab 4')
-        tab_widget.addTab(dock_clustering_widget, 'Tab 5')
-        tab_widget.addTab(dock_visualization_widget, 'Tab 6')
+        tab_widget.addTab(dock_loaders_widget, 'Inputs')
+        tab_widget.addTab(dock_preprocess_widget, 'Preprocessors')
+        tab_widget.addTab(dock_regression_widget, 'Regression')
+        tab_widget.addTab(dock_classification_widget, 'Classification')
+        tab_widget.addTab(dock_clustering_widget, 'Clustering')
+        tab_widget.addTab(dock_visualization_widget, 'Output')
+        tab_widget.addTab(dock_demux_widget, "Demux")
 
         dock.setWidget(tab_widget)
 
@@ -184,6 +192,7 @@ class MainWindow(QMainWindow):
 
     def order_path(self):
         first_node = None
+        self.is_ordered = True
         self.ordered_nodes = [[]]
         for node in self.main_widget.nodes:
             if isinstance(node, Node) and node.is_first:
@@ -194,9 +203,13 @@ class MainWindow(QMainWindow):
     def append_nodes_by_order(self, node, l):
         if isinstance(node, Node):
             l.append(node)
-        if node.is_last:
-            return
+            if node.is_last:
+                return
         while True:
+            if not l[-1].output_socket.has_edge() and not l[-1].is_last:
+                QMessageBox.critical(self, "Warning!", "Every path must end with an output socket!")
+                self.is_ordered = False
+                return
             next_node = l[-1].output_socket.edge.end_socket.node
             if isinstance(next_node, NodeDemux):
                 copied_lists = []
@@ -210,6 +223,10 @@ class MainWindow(QMainWindow):
                         for item in l:
                             copied_lists[i].append(item)
                         self.ordered_nodes.append(copied_lists[i])
+                        if not socket.has_edge():
+                            QMessageBox.critical(self, "Warning!", "Every demux sockets must be connected to a node!")
+                            self.is_ordered = False
+                            return
                         self.append_nodes_by_order(socket.edge.end_socket.node, copied_lists[i])
                 break
             l.append(next_node)
@@ -222,7 +239,7 @@ class MainWindow(QMainWindow):
                 i = ordered_nodes.index(node)
             except ValueError:
                 continue
-            ordered_nodes[i+1].feed(node.output)
+            ordered_nodes[i + 1].feed(node.output)
 
     def show_about_dialog(self):
         QMessageBox.about(
@@ -268,8 +285,8 @@ class MainWindow(QMainWindow):
             current,
             self,
             options=(
-                QFontDialog.DontUseNativeDialog |
-                QFontDialog.MonospacedFonts
+                    QFontDialog.DontUseNativeDialog |
+                    QFontDialog.MonospacedFonts
             )
         )
         if accepted:
@@ -281,9 +298,12 @@ class MainWindow(QMainWindow):
 
     def change_statusbar_text(self):
         completed_count = 0
+        set_of_nodes = set()
         for node in self.main_widget.nodes:
-            if isinstance(node, Node) and node.is_finished:
-                completed_count += 1
+            if node not in set_of_nodes:
+                if isinstance(node, Node) and node.is_finished:
+                    completed_count += 1
+                set_of_nodes.add(node)
         self.statusbar_label.setText("{}/{}".format(completed_count, len(self.main_widget.nodes)))
 
 
@@ -298,7 +318,7 @@ class SettingsDialog(QDialog):
             QLabel('<h1>Application Settings</h1>'),
         )
         self.show_warnings_cb = QCheckBox(
-            #checked=settings.get('show_warnings')
+            # checked=settings.get('show_warnings')
             checked=settings.value('show_warnings', type=bool)
         )
         self.layout().addRow("Show Warnings", self.show_warnings_cb)
@@ -308,7 +328,7 @@ class SettingsDialog(QDialog):
         self.layout().addRow(self.accept_btn, self.cancel_btn)
 
     def accept(self):
-        #self.settings['show_warnings'] = self.show_warnings_cb.isChecked()
+        # self.settings['show_warnings'] = self.show_warnings_cb.isChecked()
         self.settings.setValue(
             'show_warnings',
             self.show_warnings_cb.isChecked()

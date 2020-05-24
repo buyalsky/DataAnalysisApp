@@ -11,12 +11,10 @@ from node import InputOutputNode
 
 class AttributeRemover(InputOutputNode):
     check_boxes = None
-    modified_df = None
+    df = None
 
-    # todo remove title height kwarg for all nodes
     def __init__(self, scene):
-        super().__init__(scene, title="Attribute Remover", title_height=40)
-        self.df = None
+        super().__init__(scene, title="Attribute Remover")
         self.node_type = "filter.attribute"
 
     def setup_ui(self):
@@ -34,6 +32,7 @@ class AttributeRemover(InputOutputNode):
         scroll_area_widget_contents.setGeometry(QRect(0, 0, 357, 279))
         vertical_layout = QVBoxLayout(scroll_area_widget_contents)
         self.check_boxes = []
+        self.df = self.fed_data["data_frame"]
         data_types = dict(self.df.dtypes)
         for i in range(len(self.df.columns)):
             c = QCheckBox(scroll_area_widget_contents)
@@ -62,42 +61,35 @@ class AttributeRemover(InputOutputNode):
                 dropped_columns.append(str(self.df.columns[i]))
                 print(checkbox.text())
         if dropped_columns:
-            self.modified_df = self.df.drop(dropped_columns, axis=1)
+            self.modified_data["data_frame"] = self.df.drop(dropped_columns, axis=1)
         print(self.df.head())
 
         self.is_finished = True
         print("completed")
         self.return_file()
 
-    @property
-    def output(self):
-        return self.modified_df
-
 
 class Filter(InputOutputNode):
+    df = None
     stacked_widget = None
     combo_box = None
     line_edits = None
     check_boxes = None
-    modified_df = None
 
     def __init__(self, scene):
         super().__init__(scene, title="Filter")
-        self.df = None
+        self.node_type = "filter.filter"
 
-    def setup_ui(self):
-        self.dialog.resize(512, 300)
+    def setup_ui2(self):
+        self.dialog.resize(548, 268)
         grid_layout = QGridLayout(self.dialog)
-        vertical_layout = QVBoxLayout()
+        self.vertical_layout = QVBoxLayout()
         horizontal_layout = QHBoxLayout()
         label = QLabel(self.dialog)
         horizontal_layout.addWidget(label)
         self.combo_box = QComboBox(self.dialog)
         horizontal_layout.addWidget(self.combo_box)
-        vertical_layout.addLayout(horizontal_layout)
-        frame = QFrame(self.dialog)
-        frame.setFrameShape(QFrame.StyledPanel)
-        frame.setFrameShadow(QFrame.Raised)
+        self.vertical_layout.addLayout(horizontal_layout)
 
         self.stacked_widget = QStackedWidget()
         scroll_areas = []
@@ -105,12 +97,12 @@ class Filter(InputOutputNode):
         scroll_areas_layouts = []
         self.line_edits = []
         self.check_boxes = []
-
+        self.df = self.fed_data["data_frame"]
         data_types = dict(self.df.dtypes)
 
         for i in range(len(self.df.columns)):
             if "int" in str(data_types[self.df.columns[i]]) or "float" in str(data_types[self.df.columns[i]]):
-                scroll_area = QScrollArea(frame)
+                scroll_area = QScrollArea(self.dialog)
                 scroll_area.setWidgetResizable(True)
                 contents = QWidget()
                 contents.setGeometry(QRect(0, 0, 399, 259))
@@ -124,10 +116,10 @@ class Filter(InputOutputNode):
                 label_range_selection.setText("Range Selection")
                 vertical_layout.addWidget(label_range_selection)
 
-                line = QFrame(contents)
+                """line = QFrame(contents)
                 line.setFrameShape(QFrame.HLine)
                 line.setFrameShadow(QFrame.Sunken)
-                vertical_layout.addWidget(line)
+                self.vertical_layout.addWidget(line)"""
 
                 font = QFont()
                 font.setPointSize(10)
@@ -161,10 +153,10 @@ class Filter(InputOutputNode):
                 self.line_edits.append((line_from, line_to))
                 vertical_layout.addLayout(horizontal_line_edits)
 
-                line = QFrame(contents)
+                """line = QFrame(contents)
                 line.setFrameShape(QFrame.HLine)
                 line.setFrameShadow(QFrame.Sunken)
-                vertical_layout.addWidget(line)
+                self.vertical_layout.addWidget(line)"""
 
                 check_box_negate = QCheckBox(contents)
                 check_box_negate.setText("Grab values without this range.")
@@ -177,12 +169,13 @@ class Filter(InputOutputNode):
                 scroll_areas_layouts.append(vertical_layout)
                 self.combo_box.addItem("{} ({})".format(self.df.columns[i], data_types[self.df.columns[i]]))
 
-        grid_layout2 = QGridLayout(frame)
+        grid_layout2 = QGridLayout(scroll_areas_widget_contents)
 
         self.stacked_widget.setCurrentIndex(0)
         grid_layout2.addWidget(self.stacked_widget, 0, 0, 1, 1)
+        vertical_layout.addLayout(grid_layout2)
 
-        vertical_layout.addWidget(frame)
+        # self.vertical_layout.addWidget(self.frame)
         buttons_horizontal_layout = QHBoxLayout()
         reset_button = QPushButton(self.dialog)
         buttons_horizontal_layout.addWidget(reset_button)
@@ -205,27 +198,186 @@ class Filter(InputOutputNode):
         button_box.accepted.connect(self.dialog.accept)
         button_box.rejected.connect(self.dialog.reject)
         apply_button = button_box.button(QDialogButtonBox.Apply)
-        apply_button.clicked.connect(self.apply_clicked)
+        apply_button.clicked.connect(self.add_filter)
         QMetaObject.connectSlotsByName(self.dialog)
 
-    @property
-    def output(self):
-        return self.modified_df
+    def setup_ui(self):
+        self.dialog.resize(548, 268)
+        self.gridLayout = QGridLayout(self.dialog)
+        self.horizontal_layout = QHBoxLayout()
+        self.label = QLabel(self.dialog)
+        self.horizontal_layout.addWidget(self.label)
+        self.combo_box = QComboBox(self.dialog)
+        self.horizontal_layout.addWidget(self.combo_box)
+        self.gridLayout.addLayout(self.horizontal_layout, 0, 0, 1, 1)
+
+        self.scroll_area = QScrollArea(self.dialog)
+        self.scroll_area.setWidgetResizable(True)
+        self.scrollAreaWidgetContents = QWidget()
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 590, 349))
+        self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents)
+        self.stacked_widget = QStackedWidget(self.scrollAreaWidgetContents)
+
+        scroll_areas = []
+        scroll_areas_widget_contents = []
+        scroll_areas_layouts = []
+        self.line_edits = []
+        self.check_boxes = []
+        self.df = self.fed_data["data_frame"]
+        data_types = dict(self.df.dtypes)
+
+        for i in range(len(self.df.columns)):
+            if "int" in str(data_types[self.df.columns[i]]) or "float" in str(data_types[self.df.columns[i]]):
+                scroll_area = QScrollArea(self.dialog)
+                scroll_area.setWidgetResizable(True)
+                contents = QWidget()
+                contents.setGeometry(QRect(0, 0, 399, 259))
+                scroll_area.setWidget(contents)
+                self.stacked_widget.addWidget(scroll_area)
+                scroll_areas.append(scroll_area)
+                scroll_areas_widget_contents.append(contents)
+                vertical_layout = QVBoxLayout(contents)
+
+                label_range_selection = QLabel(contents)
+                label_range_selection.setText("Range Selection")
+                vertical_layout.addWidget(label_range_selection)
+
+                """line = QFrame(contents)
+                line.setFrameShape(QFrame.HLine)
+                line.setFrameShadow(QFrame.Sunken)
+                self.vertical_layout.addWidget(line)"""
+
+                font = QFont()
+                font.setPointSize(10)
+                horizontal_labels = QHBoxLayout()
+                label_from = QLabel(contents)
+                label_from.setFont(font)
+                label_from.setAlignment(Qt.AlignCenter)
+                label_from.setText("From")
+                label_empty = QLabel(contents)
+                label_empty.setText("")
+                label_to = QLabel(contents)
+                label_to.setFont(font)
+                label_to.setAlignment(Qt.AlignCenter)
+                label_to.setText("To")
+                horizontal_labels.addWidget(label_from, 40)
+                horizontal_labels.addWidget(label_empty, 20)
+                horizontal_labels.addWidget(label_to, 40)
+                vertical_layout.addLayout(horizontal_labels)
+
+                font.setPointSize(15)
+                horizontal_line_edits = QHBoxLayout()
+                line_from = QLineEdit(contents)
+                line_from.setFont(font)
+                label_empty2 = QLabel(contents)
+                label_empty2.setText("")
+                line_to = QLineEdit(contents)
+                line_to.setFont(font)
+                horizontal_line_edits.addWidget(line_from, 40)
+                horizontal_line_edits.addWidget(label_empty2, 20)
+                horizontal_line_edits.addWidget(line_to, 40)
+                self.line_edits.append((line_from, line_to))
+                vertical_layout.addLayout(horizontal_line_edits)
+
+                """line = QFrame(contents)
+                line.setFrameShape(QFrame.HLine)
+                line.setFrameShadow(QFrame.Sunken)
+                self.vertical_layout.addWidget(line)"""
+
+                check_box_negate = QCheckBox(contents)
+                check_box_negate.setText("Grab values without this range.")
+                vertical_layout.addWidget(check_box_negate, 15)
+                check_box_remove_null = QCheckBox(contents)
+                check_box_remove_null.setText("Remove null values.")
+                vertical_layout.addWidget(check_box_remove_null)
+                self.check_boxes.append((check_box_negate, check_box_remove_null))
+
+                scroll_areas_layouts.append(vertical_layout)
+                self.combo_box.addItem("{} ({})".format(self.df.columns[i], data_types[self.df.columns[i]]))
+
+        self.page = QWidget()
+        self.stacked_widget.addWidget(self.page)
+        self.page_2 = QWidget()
+        self.stacked_widget.addWidget(self.page_2)
+        self.gridLayout_3.addWidget(self.stacked_widget, 0, 0, 1, 1)
+
+        self.scroll_area.setWidget(self.scrollAreaWidgetContents)
+        self.gridLayout.addWidget(self.scroll_area, 1, 0, 1, 1)
+        self.horizontal_layout_button = QHBoxLayout()
+        self.reset_button = QPushButton(self.dialog)
+        self.horizontal_layout_button.addWidget(self.reset_button)
+        self.reset_all_button = QPushButton(self.dialog)
+        self.horizontal_layout_button.addWidget(self.reset_all_button)
+        self.buttonBox = QDialogButtonBox(self.dialog)
+        self.buttonBox.setOrientation(Qt.Horizontal)
+        self.buttonBox.setStandardButtons(
+            QDialogButtonBox.Apply | QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.horizontal_layout_button.addWidget(self.buttonBox)
+        self.gridLayout.addLayout(self.horizontal_layout_button, 2, 0, 1, 1)
+
+        self.dialog.setWindowTitle("Filter")
+        self.label.setText("Attribute")
+        self.reset_button.setText("Reset")
+        self.reset_all_button.setText("Reset All")
+
+        self.reset_all_button.clicked.connect(self.remove_all_filters)
+        self.reset_button.clicked.connect(self.remove_filter)
+
+        self.stacked_widget.setCurrentIndex(0)
+
+        self.combo_box.currentIndexChanged.connect(self.set_visible_scroll_area2)
+
+        self.buttonBox.accepted.connect(self.apply_filters)
+        self.buttonBox.rejected.connect(self.print_filters)
+        apply_button = self.buttonBox.button(QDialogButtonBox.Apply)
+        apply_button.clicked.connect(self.add_filter)
+        QMetaObject.connectSlotsByName(self.dialog)
+
+        self.filters = {}
 
     def set_visible_scroll_area2(self, index):
         self.stacked_widget.setCurrentIndex(index)
 
-    def apply_clicked(self):
+    def add_filter(self):
+        # TODO: reset and reset all button related methods
         self.stacked_widget.currentWidget().setEnabled(False)
         index = self.combo_box.currentIndex()
         line_from, line_to = self.line_edits[index]
         filt = (self.df[self.df.columns[index]] > int(line_from.text())) & (
-                    self.df[self.df.columns[index]] < int(line_to.text()))
-        if self.check_boxes[index][0].isChecked():
-            self.modified_df = self.df[~filt]
-        else:
-            self.modified_df = self.df[filt]
-        print(self.modified_df.head())
+                self.df[self.df.columns[index]] < int(line_to.text()))
+
+        self.filters[self.stacked_widget.currentIndex()] = (filt, self.check_boxes[index][0].isChecked())
+        print(self.modified_data["data_frame"].head())
+
+    def apply_filters(self):
+        cumulative_filter = None
+        self.modified_data = self.df
+        for t in self.filters.values():
+            if not t:
+                if t[0]:
+                    cumulative_filter &= ~t[1]
+                else:
+                    cumulative_filter &= t[1]
+
+        self.modified_data = self.df[cumulative_filter]
+
+        print(self.modified_data["data_frame"].head())
+
+    def remove_filter(self):
+        try:
+            self.filters[self.stacked_widget.currentIndex()] = None
+        except KeyError:
+            pass
+
+    def remove_all_filters(self):
+        for value in self.filters.values():
+            value = None
+
+    # Will be removed soon
+    def print_filters(self):
+        print("Printing filters")
+        for i, value in self.filters.items():
+            print("{} {}".format(i, value))
 
 
 class LinearRegression(InputOutputNode):
@@ -262,6 +414,11 @@ class LinearRegression(InputOutputNode):
         self.button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.grid_layout.addWidget(self.button_box, 1, 0, 1, 1)
 
+        self.df = self.fed_data["data_frame"]
+
+        for i in range(len(self.df.columns)):
+            self.combo_box_target.addItem(str(self.df.columns[i]))
+
         self.dialog.setWindowTitle("Linear Regression")
         self.spin_box_degree.setMinimum(1)
         self.label.setText("Target")
@@ -270,23 +427,30 @@ class LinearRegression(InputOutputNode):
 
         self.label_info.setText("Classic linear regression will be used If you do not specify degree. \n"
                                 "Using high degree parameter might lead overfitting. Additionally, \n"
-                                "for lower degrees the model will underfit the training data.")
+                                "for lower degrees the model likely underfit the training data.")
 
         self.spin_box_degree.valueChanged.connect(lambda val: self.check_box.setEnabled(val >= 2))
 
-        self.button_box.accepted.connect(self.dialog.accept)
+        self.button_box.accepted.connect(self.apply_linear_regression)
         self.button_box.rejected.connect(self.dialog.reject)
         QMetaObject.connectSlotsByName(self.dialog)
 
     def apply_linear_regression(self):
+        self.split_target_and_inputs()
         from sklearn.linear_model import LinearRegression
         if self.spin_box_degree.value() >= 2:
             from sklearn.preprocessing import PolynomialFeatures
             polynomial_regression = PolynomialFeatures(degree=self.spin_box_degree.value())
             self.X = polynomial_regression.fit_transform(self.X)
-        self.model = LinearRegression()
-        self.model.fit(self.X, self.y)
+        model = LinearRegression()
+        model.fit(self.X, self.y)
 
+        self.is_finished = True
+        print("completed")
+        self.modified_data["model"] = model
+        self.modified_data["target_label"] = self.combo_box_target.currentText()
+
+        self.return_file()
 
     def split_target_and_inputs(self):
         self.X = self.df.drop(columns=[self.combo_box_target.currentText()])
@@ -294,7 +458,6 @@ class LinearRegression(InputOutputNode):
 
 
 class NaiveBayesClassify(InputOutputNode):
-    dialog = None
     button_box = None
     layout_widget = None
     horizontal_layout = None
@@ -306,7 +469,7 @@ class NaiveBayesClassify(InputOutputNode):
     line_edit_2 = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Naive Bayes Classify", title_height=40)
+        super().__init__(scene, title="Naive Bayes Classify")
         self.node_type = "supervised.naivebayes"
 
     def setup_ui(self):
@@ -347,10 +510,11 @@ class NaiveBayesClassify(InputOutputNode):
         self.vertical_layout_2.addWidget(self.line_edit_2)
         self.horizontal_layout.addLayout(self.vertical_layout_2)
 
-        _translate = QCoreApplication.translate
         self.dialog.setWindowTitle("Naive Bayes Classify")
         self.label_2.setText("Target selection")
         self.label_3.setText("Test size percentage")
+
+        self.df = self.fed_data["data_frame"]
 
         for i in range(len(self.df.columns)):
             self.combo_box.addItem(str(self.df.columns[i]))
@@ -368,13 +532,13 @@ class NaiveBayesClassify(InputOutputNode):
             from sklearn.naive_bayes import GaussianNB
             from sklearn.model_selection import train_test_split
 
-            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y,
-                                                                          test_size=int(self.line_edit_2.text()) / 100,
-                                                                          random_state=1, stratify=self.y)
+            X_train, X_test, y_train, y_test = train_test_split(self.X, self.y,
+                                                                test_size=int(self.line_edit_2.text()) / 100,
+                                                                random_state=1, stratify=self.y)
 
-            self.model = GaussianNB()
-            self.model.fit(X_train, y_train)
-            print(self.model.score(self.X_test, self.y_test))
+            model = GaussianNB()
+            model.fit(X_train, y_train)
+            print(model.score(X_test, y_test))
         except Exception as e:
             QMessageBox.about(
                 self.scene.parent_widget,
@@ -384,17 +548,14 @@ class NaiveBayesClassify(InputOutputNode):
         else:
             self.is_finished = True
             print("completed")
+            self.modified_data["model"] = model
+            self.modified_data["test_data"] = (X_test, y_test)
+            self.modified_data["target_label"] = self.combo_box.currentText()
             self.return_file()
 
     def split_target_and_inputs(self):
         self.X = self.df.drop(columns=[self.combo_box.currentText()])
         self.y = self.df[self.combo_box.currentText()].values
-
-    @property
-    def output(self):
-        # TODO: return target selection
-        data = {"model": self.model, "data_frame": self.df, "test_data": (self.X_test, self.y_test)}
-        return data
 
 
 class Knn(InputOutputNode):
@@ -411,75 +572,65 @@ class Knn(InputOutputNode):
 
     def __init__(self, scene):
         super().__init__(scene, title="Knn")
-        self.df = None
         self.node_type = "supervised.knn"
 
     def setup_ui(self):
-        self.dialog.setObjectName("self.Dialog")
         self.dialog.resize(451, 205)
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.dialog.sizePolicy().hasHeightForWidth())
-        self.dialog.setSizePolicy(sizePolicy)
+        size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(self.dialog.sizePolicy().hasHeightForWidth())
+        self.dialog.setSizePolicy(size_policy)
         self.button_box = QDialogButtonBox(self.dialog)
         self.button_box.setGeometry(QRect(100, 150, 341, 32))
         self.button_box.setOrientation(Qt.Horizontal)
         self.button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
-        self.button_box.setObjectName("buttonBox")
         self.widget = QWidget(self.dialog)
         self.widget.setGeometry(QRect(20, 30, 401, 111))
-        self.widget.setObjectName("widget")
         self.horizontal_layout = QHBoxLayout(self.widget)
         self.horizontal_layout.setContentsMargins(0, 0, 0, 0)
-        self.horizontal_layout.setObjectName("horizontalLayout")
         self.vertical_layout = QVBoxLayout()
-        self.vertical_layout.setObjectName("verticalLayout")
         self.label = QLabel(self.widget)
-        self.label.setObjectName("label")
         self.vertical_layout.addWidget(self.label)
         self.label2 = QLabel(self.widget)
-        self.label2.setObjectName("label_2")
         self.vertical_layout.addWidget(self.label2)
         self.label3 = QLabel(self.widget)
-        self.label3.setObjectName("label_3")
         self.vertical_layout.addWidget(self.label3)
         self.horizontal_layout.addLayout(self.vertical_layout)
         self.vertical_layout2 = QVBoxLayout()
-        self.vertical_layout2.setObjectName("verticalLayout_2")
-        self.line_edit = QLineEdit(self.widget)
+        self.line_edit = QSpinBox(self.widget)
+        self.line_edit.setMinimum(1)
 
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.line_edit.sizePolicy().hasHeightForWidth())
-        self.line_edit.setSizePolicy(sizePolicy)
-        self.line_edit.setObjectName("lineEdit")
+        size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(self.line_edit.sizePolicy().hasHeightForWidth())
+        self.line_edit.setSizePolicy(size_policy)
         self.vertical_layout2.addWidget(self.line_edit)
-        self.comboBox = QComboBox(self.widget)
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.comboBox.sizePolicy().hasHeightForWidth())
-        self.comboBox.setSizePolicy(sizePolicy)
-        self.vertical_layout2.addWidget(self.comboBox)
+        self.combo_box = QComboBox(self.widget)
+        size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(self.combo_box.sizePolicy().hasHeightForWidth())
+        self.combo_box.setSizePolicy(size_policy)
+        self.vertical_layout2.addWidget(self.combo_box)
         self.line_edit2 = QLineEdit(self.widget)
         self.line_edit2.setValidator(QIntValidator(0, 100, self.line_edit2))
-        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.line_edit2.sizePolicy().hasHeightForWidth())
-        self.line_edit2.setSizePolicy(sizePolicy)
+        size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        size_policy.setHorizontalStretch(0)
+        size_policy.setVerticalStretch(0)
+        size_policy.setHeightForWidth(self.line_edit2.sizePolicy().hasHeightForWidth())
+        self.line_edit2.setSizePolicy(size_policy)
         self.vertical_layout2.addWidget(self.line_edit2)
         self.horizontal_layout.addLayout(self.vertical_layout2)
 
-        _translate = QCoreApplication.translate
-        self.dialog.setWindowTitle("self.Dialog")
+        self.dialog.setWindowTitle("KNN Classifier")
         self.label.setText("Number of neighbors")
         self.label2.setText("Target selection")
         self.label3.setText("Test size percentage")
+        self.df = self.fed_data["data_frame"]
         for i in range(len(self.df.columns)):
-            self.comboBox.addItem(str(self.df.columns[i]))
+            self.combo_box.addItem(str(self.df.columns[i]))
 
         self.button_box.accepted.connect(self.apply_knn_classify)
         self.button_box.rejected.connect(self.dialog.reject)
@@ -494,13 +645,13 @@ class Knn(InputOutputNode):
             from sklearn.neighbors import KNeighborsClassifier
             from sklearn.model_selection import train_test_split
 
-            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y,
-                                                                          test_size=int(self.line_edit2.text()) / 100,
-                                                                          random_state=1, stratify=self.y)
+            X_train, X_test, y_train, y_test = train_test_split(self.X, self.y,
+                                                                test_size=int(self.line_edit2.text()) / 100,
+                                                                random_state=1, stratify=self.y)
 
-            self.model = KNeighborsClassifier(n_neighbors=int(self.line_edit.text()))
-            self.model.fit(X_train, y_train)
-            print(self.model.score(self.X_test, self.y_test))
+            model = KNeighborsClassifier(n_neighbors=self.line_edit.value())
+            model.fit(X_train, y_train)
+            print(model.score(X_test, y_test))
         except Exception as e:
             QMessageBox.about(
                 self.scene.parent_widget,
@@ -508,18 +659,16 @@ class Knn(InputOutputNode):
                 str(e)
             )
         else:
+            self.modified_data["model"] = model
+            self.modified_data["test_data"] = (X_test, y_test)
+            self.modified_data["target_label"] = self.combo_box.currentText()
             self.is_finished = True
             print("completed")
             self.return_file()
 
     def split_target_and_inputs(self):
-        self.X = self.df.drop(columns=[self.comboBox.currentText()])
-        self.y = self.df[self.comboBox.currentText()].values
-
-    @property
-    def output(self):
-        return {"model": self.model, "data_frame": self.df, "test_data": (self.X_test, self.y_test),
-                "target_label": self.comboBox.currentText()}
+        self.X = self.df.drop(columns=[self.combo_box.currentText()])
+        self.y = self.df[self.combo_box.currentText()].values
 
 
 class SVM(InputOutputNode):
@@ -569,6 +718,8 @@ class SVM(InputOutputNode):
         self.dialog.setWindowTitle("Support Vector Machine")
         self.label_2.setText("Target selection")
         self.label_3.setText("Test size percentage")
+        self.df = self.fed_data["data_frame"]
+
         for i in range(len(self.df.columns)):
             self.comboBox.addItem(str(self.df.columns[i]))
 
@@ -585,13 +736,13 @@ class SVM(InputOutputNode):
             from sklearn.svm import SVC
             from sklearn.model_selection import train_test_split
 
-            X_train, self.X_test, y_train, self.y_test = train_test_split(self.X, self.y,
-                                                                          test_size=int(self.lineEdit_2.text()) / 100,
-                                                                          random_state=1, stratify=self.y)
+            X_train, X_test, y_train, y_test = train_test_split(self.X, self.y,
+                                                                test_size=int(self.lineEdit_2.text()) / 100,
+                                                                random_state=1, stratify=self.y)
 
-            self.model = SVC(random_state=1)
-            self.model.fit(X_train, y_train)
-            print(self.model.score(self.X_test, self.y_test))
+            model = SVC(random_state=1)
+            model.fit(X_train, y_train)
+            print(model.score(X_test, y_test))
         except Exception as e:
             QMessageBox.about(
                 self.scene.parent_widget,
@@ -599,6 +750,9 @@ class SVM(InputOutputNode):
                 str(e)
             )
         else:
+            self.modified_data["model"] = model
+            self.modified_data["test_data"] = (X_test, y_test)
+            self.modified_data["target_label"] = self.comboBox.currentText()
             self.is_finished = True
             print("completed")
             self.return_file()
@@ -606,10 +760,6 @@ class SVM(InputOutputNode):
     def split_target_and_inputs(self):
         self.X = self.df.drop(columns=[self.comboBox.currentText()])
         self.y = self.df[self.comboBox.currentText()].values
-
-    @property
-    def output(self):
-        return self.model, self.X_test, self.y_test
 
 
 class DecisionTree(InputOutputNode):
@@ -665,10 +815,11 @@ class DecisionTree(InputOutputNode):
         self.vertical_layout2.addWidget(self.line_edit2)
         self.horizontal_layout.addLayout(self.vertical_layout2)
 
-        _translate = QCoreApplication.translate
-        self.dialog.setWindowTitle("self.Dialog")
+        self.dialog.setWindowTitle("Decision Tree Classifier")
         self.label2.setText("Target selection")
         self.label3.setText("Test size percentage")
+
+        self.df = self.fed_data["data_frame"]
         for i in range(len(self.df.columns)):
             self.combo_box.addItem(str(self.df.columns[i]))
         self.buttonBox.accepted.connect(self.apply_decision_tree_classify)
@@ -688,9 +839,9 @@ class DecisionTree(InputOutputNode):
                                                                 random_state=1,
                                                                 stratify=self.y)
 
-            dt = DecisionTreeClassifier()
-            dt.fit(X_train, y_train)
-            print(dt.score(X_test, y_test))
+            model = DecisionTreeClassifier()
+            model.fit(X_train, y_train)
+            print(model.score(X_test, y_test))
         except Exception as e:
             QMessageBox.about(
                 self.scene.parent_widget,
@@ -698,6 +849,9 @@ class DecisionTree(InputOutputNode):
                 str(e)
             )
         else:
+            self.modified_data["model"] = model
+            self.modified_data["test_data"] = (X_test, y_test)
+            self.modified_data["target_label"] = self.combo_box.currentText()
             self.is_finished = True
             print("completed")
             self.return_file()
@@ -705,6 +859,92 @@ class DecisionTree(InputOutputNode):
     def split_target_and_inputs(self):
         self.X = self.df.drop(columns=[self.combo_box.currentText()])
         self.y = self.df[self.combo_box.currentText()].values
+
+
+class KmeansClustering(InputOutputNode):
+    def __init__(self, scene):
+        super().__init__(scene, title="K-Means Clustering")
+
+    def setup_ui(self):
+        self.dialog.resize(451, 130)
+        self.grid_layout = QGridLayout(self.dialog)
+        label = QLabel(self.dialog)
+        self.grid_layout.addWidget(label, 0, 0, 1, 1)
+        self.spin_box = QSpinBox(self.dialog)
+        self.spin_box.setMinimum(1)
+        self.grid_layout.addWidget(self.spin_box, 0, 1, 1, 1)
+        self.button_box = QDialogButtonBox(self.dialog)
+        self.button_box.setOrientation(Qt.Horizontal)
+        self.button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.grid_layout.addWidget(self.button_box, 1, 0, 1, 2)
+        self.dialog.setWindowTitle("K-Means Clustering")
+        label.setText("Number of cluster")
+        self.button_box.accepted.connect(self.apply_kmeans_clustering)
+        self.button_box.rejected.connect(self.dialog.reject)
+        QMetaObject.connectSlotsByName(self.dialog)
+
+    def apply_kmeans_clustering(self):
+        try:
+            from sklearn.cluster import KMeans
+            model = KMeans(n_clusters=self.spin_box.value())
+            clusters = model.fit_predict(self.fed_data["data_frame"])
+
+        except Exception as e:
+            QMessageBox.about(
+                self.scene.parent_widget,
+                "Error happened",
+                str(e)
+            )
+        else:
+            self.modified_data["model"] = model
+            self.modified_data["data_frame"]["label"] = clusters
+            self.modified_data["target_label"] = "label"
+            self.is_finished = True
+            print("completed")
+            self.return_file()
+
+
+class HierarchicalClustering(InputOutputNode):
+    def __init__(self, scene):
+        super().__init__(scene, title="K-Means Clustering")
+
+    def setup_ui(self):
+        self.dialog.resize(451, 130)
+        self.grid_layout = QGridLayout(self.dialog)
+        label = QLabel(self.dialog)
+        self.grid_layout.addWidget(label, 0, 0, 1, 1)
+        self.spin_box = QSpinBox(self.dialog)
+        self.spin_box.setMinimum(1)
+        self.grid_layout.addWidget(self.spin_box, 0, 1, 1, 1)
+        self.button_box = QDialogButtonBox(self.dialog)
+        self.button_box.setOrientation(Qt.Horizontal)
+        self.button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.grid_layout.addWidget(self.button_box, 1, 0, 1, 2)
+        self.dialog.setWindowTitle("Hierarchical Clustering")
+        label.setText("Number of cluster")
+        self.button_box.accepted.connect(self.apply_hierarchical_clustering)
+        self.button_box.rejected.connect(self.dialog.reject)
+        QMetaObject.connectSlotsByName(self.dialog)
+
+    def apply_hierarchical_clustering(self):
+        try:
+            from sklearn.cluster import AgglomerativeClustering
+            model = AgglomerativeClustering(n_clusters=self.spin_box.value())
+            clusters = model.fit_predict(self.fed_data["data_frame"])
+
+        except Exception as e:
+            QMessageBox.about(
+                self.scene.parent_widget,
+                "Error happened",
+                str(e)
+            )
+        else:
+            self.modified_data["model"] = model
+            self.modified_data["data_frame"]["label"] = clusters
+            self.modified_data["target_label"] = "label"
+            self.is_finished = True
+            print("completed")
+            self.return_file()
 
 
 if __name__ == "__main__":

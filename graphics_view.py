@@ -70,6 +70,7 @@ class GraphicsView(QGraphicsView):
         self._drop_listeners.append(callback)
 
     def mousePressEvent(self, event):
+        print("Mouse pressed")
         if event.button() == Qt.MiddleButton:
             self.middleMouseButtonPress(event)
         elif event.button() == Qt.LeftButton:

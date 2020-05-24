@@ -7,9 +7,10 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 class GraphicNode(QGraphicsItem):
-    def __init__(self, node, parent=None, title_height=None):
+    def __init__(self, node, parent=None):
         super().__init__(parent)
         self.node = node
+        self._title = self.node.title
         self.content = self.node.content
 
         title_font = QFont("Consolas", 10)
@@ -17,7 +18,7 @@ class GraphicNode(QGraphicsItem):
         self.width = 120
         self.height = 120
         self.edge_size = 5.0
-        self.title_height = title_height if title_height else 22.5
+        self.title_height = 40 if len(self.node.title) > 12 else 22.5
         self.padding = 4.0
 
         self._pen_default = QPen(QColor("#7F000000"))
@@ -33,7 +34,7 @@ class GraphicNode(QGraphicsItem):
         self.title_item.setFont(title_font)
         self.title_item.setPos(self.padding, 0)
         self.title_item.setTextWidth(self.width - 2 * self.padding)
-        self.title = self.node.title
+        self.title_item.setPlainText(self._title)
         self.init_content()
 
         self.setFlag(QGraphicsItem.ItemIsSelectable)
@@ -52,11 +53,6 @@ class GraphicNode(QGraphicsItem):
     def title(self):
         return self._title
 
-    @title.setter
-    def title(self, value):
-        self._title = value
-        self.title_item.setPlainText(self._title)
-
     def boundingRect(self):
         return QRectF(
             0,
@@ -68,14 +64,14 @@ class GraphicNode(QGraphicsItem):
     def init_content(self):
         self.gr_content = QGraphicsProxyWidget(self)
         self.content.setGeometry(self.edge_size, self.title_height + self.edge_size,
-                                 self.width - 2*self.edge_size, self.height - 2*self.edge_size-self.title_height)
+                                 self.width - 2 * self.edge_size, self.height - 2 * self.edge_size - self.title_height)
         self.gr_content.setWidget(self.content)
 
     def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
         # title
         path_title = QPainterPath()
         path_title.setFillRule(Qt.WindingFill)
-        path_title.addRoundedRect(0,0, self.width, self.title_height, self.edge_size, self.edge_size)
+        path_title.addRoundedRect(0, 0, self.width, self.title_height, self.edge_size, self.edge_size)
         path_title.addRect(0, self.title_height - self.edge_size, self.edge_size, self.edge_size)
         path_title.addRect(self.width - self.edge_size, self.title_height - self.edge_size, self.edge_size,
                            self.edge_size)
@@ -175,14 +171,14 @@ class NodeContentWidget(QWidget):
 
 
 class Node:
-    def __init__(self, scene, title="Undefined Node", inputs=0, outputs=0, title_height=None):
+    def __init__(self, scene, title="Undefined Node", inputs=0, outputs=0):
         self.scene = scene
         self.is_finished = False
 
         self.title = title
 
         self.content = NodeContentWidget(self)
-        self.graphic_node = GraphicNode(self, title_height=title_height)
+        self.graphic_node = GraphicNode(self)
 
         self.scene.add_node(self)
         self.scene.graphic_scene.addItem(self.graphic_node)
@@ -199,8 +195,11 @@ class Node:
         if outputs:
             self.output_socket = Socket(node=self, index=0, position=RIGHT_TOP)
 
+    def __hash__(self):
+        return id(self)
+
     def __str__(self):
-        return "<Node %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
+        return "Node {}".format(self.title)
 
     def run(self):
         print("node")
@@ -214,17 +213,7 @@ class Node:
 
     def get_socket_position(self, index, position):
         x = 0 if (position in (LEFT_TOP, LEFT_BOTTOM)) else self.graphic_node.width
-        # todo no need to be detailed about position
-        if position in (LEFT_BOTTOM, RIGHT_BOTTOM):
-            # start from bottom
-            # y = self.graphic_node.height - self.graphic_node.edge_size
-            # - self.graphic_node._padding - index * self.socket_spacing
-            y = self.graphic_node.height // 2
-        else:
-            # start from top
-            # y = self.graphic_node.title_height + self.graphic_node._padding
-            # + self.graphic_node.edge_size + index * self.socket_spacing
-            y = self.graphic_node.height // 2
+        y = self.graphic_node.height // 2
 
         return [x, y]
 
@@ -258,8 +247,8 @@ class Node:
 class InputNode(Node):
     dialog = None
 
-    def __init__(self, scene, title=None, inputs=0, outputs=1, title_height=None):
-        Node.__init__(self, scene, title=title, inputs=inputs, outputs=outputs, title_height=title_height)
+    def __init__(self, scene, title=None, inputs=0, outputs=1):
+        Node.__init__(self, scene, title=title, inputs=inputs, outputs=outputs)
         self.is_first = True
 
     def run(self):
@@ -282,31 +271,44 @@ class InputNode(Node):
             # order the nodes
             self.graphic_node.scene().scene.parent_widget.parent_window.order_path()
             # feed the next node
-            self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
+            if self.graphic_node.scene().scene.parent_widget.parent_window.is_ordered:
+                self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
         else:
             self.is_finished = False
             print("not completed")
 
     @property
     def output(self):
-        return self.df
+        return {"data_frame": self.df}
 
 
 class InputOutputNode(Node):
     dialog = None
-    df = None
+    fed_data = None
+    modified_data = None
+    required_keys = ["data_frame"]
 
-    def __init__(self, scene, title=None, title_height=None):
-        Node.__init__(self, scene, title=title, inputs=1, outputs=1, title_height=title_height)
+    def __init__(self, scene, title=None):
+        Node.__init__(self, scene, title=title, inputs=1, outputs=1)
 
     def run(self):
-        if not isinstance(self.df, pd.core.frame.DataFrame):
-            QMessageBox.about(
+        if not isinstance(self.fed_data, dict):
+            QMessageBox.warning(
                 self.scene.parent_widget,
                 "Warning!",
-                "You need to complete preceding nodes first."
+                "You need to complete preceding nodes first!"
             )
             return
+        else:
+            k = self.fed_data.keys()
+            for requirement in self.required_keys:
+                if requirement not in k:
+                    QMessageBox.warning(
+                        self.scene.parent_widget,
+                        "Warning!",
+                        "This node does not match with its previous node!"
+                    )
+                    return
         self.dialog = QDialog()
         self.dialog.setModal(True)
         self.dialog.setWindowFlags(Qt.WindowTitleHint)
@@ -317,36 +319,60 @@ class InputOutputNode(Node):
         raise NotImplementedError
 
     def return_file(self):
+        self.dialog.accept()
         self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         # order the nodes
         self.graphic_node.scene().scene.parent_widget.parent_window.order_path()
         # feed the next node
         self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
 
-    def feed(self, df):
-        self.df = df
+    def feed(self, data):
+        self.fed_data = data
+        self.modified_data = data
 
     @property
     def output(self):
-        return self.df
+        return self.modified_data
 
 
 class OutputNode(Node):
     dialog = None
     fed_data = None
+    required_keys = ["data_frame"]
 
-    def __init__(self, scene, title=None, title_height=None):
-        Node.__init__(self, scene, title=title, inputs=1, outputs=0, title_height=title_height)
+    def __init__(self, scene, title=None):
+        Node.__init__(self, scene, title=title, inputs=1, outputs=0)
         self.is_last = True
 
     def run(self):
-        pass
+        if not isinstance(self.fed_data, dict):
+            QMessageBox.warning(
+                self.scene.parent_widget,
+                "Warning!",
+                "You need to complete preceding nodes first!"
+            )
+            return
+        else:
+            k = self.fed_data.keys()
+            for requirement in self.required_keys:
+                if requirement not in k:
+                    QMessageBox.warning(
+                        self.scene.parent_widget,
+                        "Warning!",
+                        "This node does not match with its previous node!"
+                    )
+                    return
+        self.dialog = QDialog()
+        self.dialog.setModal(True)
+        self.dialog.setWindowFlags(Qt.WindowTitleHint)
+        self.setup_ui()
+        self.dialog.show()
 
     def setup_ui(self):
         raise NotImplementedError
 
-    def feed(self, fed_data):
-        self.fed_data = fed_data
+    def feed(self, data):
+        self.fed_data = data
 
 
 class NodeDemux:
@@ -377,7 +403,7 @@ class NodeDemux:
 
     @property
     def pos(self):
-        return self.graphic_node.pos()        # QPointF
+        return self.graphic_node.pos()  # QPointF
 
     def set_pos(self, x, y):
         self.graphic_node.setPos(x, y)

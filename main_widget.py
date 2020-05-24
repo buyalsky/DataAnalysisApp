@@ -1,15 +1,41 @@
+import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
-from nodes.input_nodes import *
-from nodes.both_input_and_output import *
-from nodes.output_nodes import *
+from nodes.input_nodes import CsvLoader, XmlLoader, ExcelLoader, Deserializer
+from nodes.both_input_and_output import LinearRegression, KmeansClustering, DecisionTree, Knn, SVM, Filter, \
+    AttributeRemover, \
+    NaiveBayesClassify
+from nodes.output_nodes import SimplePlot, Serializer, Predictor, Histogram, ScatterPlot, TextOutput, PieChart, CsvSaver
 from scene import Scene
 from node import Node, NodeDemux
 from graphics_view import GraphicsView
 
 LISTBOX_MIMETYPE = "application/x-item"
+
+NODE_LOADER = {
+    "Csv Loader": CsvLoader,
+    "Excel Loader": ExcelLoader,
+    "Attribute Remover": AttributeRemover,
+    "Linear Regression": LinearRegression,
+    "Filter": Filter,
+    "Text output": TextOutput,
+    "Naive Bayes": NaiveBayesClassify,
+    "Knn": Knn,
+    "Decision Tree": DecisionTree,
+    "SVM": SVM,
+    "Scatter plot": ScatterPlot,
+    "Pie Chart": PieChart,
+    "Histogram": Histogram,
+    "Xml Loader": XmlLoader,
+    "Predictor": Predictor,
+    "Serializer": Serializer,
+    "Deserializer": Deserializer,
+    "Simple Plot": SimplePlot,
+    "K-Means": KmeansClustering,
+    "Csv Saver": CsvSaver
+}
 
 
 class MainWidget(QWidget):
@@ -17,14 +43,7 @@ class MainWidget(QWidget):
         super().__init__(parent)
         if parent_window:
             self.parent_window = parent_window
-        self.initUI()
-        self.scene.addHasBeenModifiedListener(self.setTitle)
-        self.scene.addDragEnterListener(self.on_drag_enter)
-        self.scene.addDropListener(self.on_drop)
 
-        self._close_event_listeners = []
-
-    def initUI(self):
         self.setGeometry(200, 200, 800, 600)
 
         self.layout = QVBoxLayout()
@@ -43,87 +62,49 @@ class MainWidget(QWidget):
         self.layout.addWidget(self.view)
 
         self.show()
+        self.scene.addHasBeenModifiedListener(self.set_title)
+        self.scene.addDragEnterListener(self.on_drag_enter)
+        self.scene.addDropListener(self.on_drop)
 
-    def load_stylesheet(self, filename):
-        print('STYLE loading:', filename)
-        file = QFile(filename)
-        file.open(QFile.ReadOnly | QFile.Text)
-        stylesheet = file.readAll()
-        QApplication.instance().setStyleSheet(str(stylesheet, encoding='utf-8'))
+        self._close_event_listeners = []
 
-    def setTitle(self):
+    def set_title(self):
         self.setWindowTitle(self.getUserFriendlyFilename())
 
-    def addCloseEventListener(self, callback):
+    def add_close_event_listener(self, callback):
         self._close_event_listeners.append(callback)
 
     def closeEvent(self, event):
         for callback in self._close_event_listeners: callback(self, event)
 
     def on_drag_enter(self, event):
-        # print("CalcSubWnd :: ~onDragEnter")
-        # print("text: '%s'" % event.mimeData().text())
         if event.mimeData().hasFormat(LISTBOX_MIMETYPE):
             event.acceptProposedAction()
         else:
-            # print(" ... denied drag enter event")
             event.setAccepted(False)
 
     def on_drop(self, event):
         if event.mimeData().hasFormat(LISTBOX_MIMETYPE):
-            eventData = event.mimeData().data(LISTBOX_MIMETYPE)
-            dataStream = QDataStream(eventData, QIODevice.ReadOnly)
+            event_data = event.mimeData().data(LISTBOX_MIMETYPE)
+            data_stream = QDataStream(event_data, QIODevice.ReadOnly)
             pixmap = QPixmap()
-            dataStream >> pixmap
-            op_code = dataStream.readInt()
-            text = dataStream.readQString()
+            data_stream >> pixmap
+            op_code = data_stream.readInt()
+            text = data_stream.readQString()
 
             mouse_position = event.pos()
             scene_position = self.scene.graphic_scene.views()[0].mapToScene(mouse_position)
 
             print("GOT DROP: [%d] '%s'" % (op_code, text), "mouse:", mouse_position, "scene:", scene_position)
 
-            # TODO: these if statements are verbose, use dictionary instead
-            if text == "Csv Loader":
-                node = CsvLoader(self.scene)
-            elif text == "Excel Loader":
-                node = ExcelLoader(self.scene)
-            elif text == "Attribute Remover":
-                node = AttributeRemover(self.scene)
-            elif text == "Linear Regression":
-                node = LinearRegression(self.scene)
-            elif text == "Filter":
-                node = Filter(self.scene)
-            elif text == "Text output":
-                node = TextOutput(self.scene)
-            elif text == "Naive Bayes":
-                node = NaiveBayesClassify(self.scene)
-            elif text == "Knn":
-                node = Knn(self.scene)
-            elif text == "Decision Tree":
-                node = DecisionTree(self.scene)
-            elif text == "SVM":
-                node = SVM(self.scene)
-            elif text == "Scatter plot":
-                node = ScatterPlot(self.scene)
-            elif text == "Histogram":
-                node = Histogram(self.scene)
-            elif text == "Xml Loader":
-                node = XmlLoader(self.scene)
-            elif text == "Predictor":
-                node = Predictor(self.scene)
-            elif text == "Serializer":
-                node = Serializer(self.scene)
-            elif text == "Deserializer":
-                node = Deserializer(self.scene)
-            elif text == "Simple Plot":
-                node = SimplePlot(self.scene)
+            if NODE_LOADER.get(text, False):
+                node = NODE_LOADER[text](self.scene)
             elif "Demux" in text:
                 node = NodeDemux(self.scene, inputs=1, outputs=int(text[2]))
             else:
                 node = Node(self.scene, text, inputs=1, outputs=1)
             node.set_pos(scene_position.x(), scene_position.y())
-            # self.scene.add_node(node)
+
             self.nodes.append(node)
             self.parent_window.change_statusbar_text()
 
