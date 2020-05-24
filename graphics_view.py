@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QGraphicsView, QApplication, QMessageBox
+from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 import logging
@@ -6,7 +6,6 @@ import logging
 from socket_ import GraphicSocket
 from edge import GraphicEdge
 from edge import Edge
-from cutter_line import CutLine
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -331,3 +330,26 @@ class GraphicsView(QGraphicsView):
         # set scene scale
         if not clamped or self.zoomClamp is False:
             self.scale(zoomFactor, zoomFactor)
+
+class CutLine(QGraphicsItem):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.line_points = []
+
+        self._pen = QPen(Qt.red)
+        self._pen.setWidthF(2.0)
+        self._pen.setDashPattern([3, 3])
+
+        self.setZValue(2)
+
+    def boundingRect(self):
+        return QRectF(0, 0, 1, 1)
+
+    def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(Qt.NoBrush)
+        painter.setPen(self._pen)
+
+        poly = QPolygonF(self.line_points)
+        painter.drawPolyline(poly)

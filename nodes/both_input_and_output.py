@@ -774,7 +774,7 @@ class DecisionTree(InputOutputNode):
     line_edit2 = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Decision Tree")
+        super().__init__(scene, title="Decision Tree Classifier")
         self.node_type = "supervised.decisiontree"
 
     def setup_ui(self):

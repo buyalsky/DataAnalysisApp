@@ -16,21 +16,18 @@ class DragList(QListWidget):
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setDragEnabled(True)
 
-    def add_items(self, items=None):
+    def add_items(self, items, icon=None):
         for item in items:
-            self.addMyItem(item, "crimson_sharks.png")
+            item = QListWidgetItem(item, self)
+            pixmap = QPixmap(icon if icon is not None else ".")
+            item.setIcon(QIcon(pixmap))
+            item.setSizeHint(QSize(32, 32))
 
-    def addMyItem(self, name, icon=None):
-        item = QListWidgetItem(name, self)
-        pixmap = QPixmap(icon if icon is not None else ".")
-        item.setIcon(QIcon(pixmap))
-        item.setSizeHint(QSize(32, 32))
+            item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled)
 
-        item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable | Qt.ItemIsDragEnabled)
-
-        # setup data
-        item.setData(Qt.UserRole, pixmap)
-        item.setData(Qt.UserRole + 1, 1)
+            # setup data
+            item.setData(Qt.UserRole, pixmap)
+            item.setData(Qt.UserRole + 1, 1)
 
     def startDrag(self, *args, **kwargs):
         try:

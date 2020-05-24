@@ -155,7 +155,7 @@ class GraphicsNodeDemux(QGraphicsItem):
 
 
 class NodeContentWidget(QWidget):
-    def __init__(self, node, parent=None):
+    def __init__(self, node, parent=None, icon_name=None):
         self.node = node
         super().__init__(parent)
         self.layout = QVBoxLayout()
@@ -165,19 +165,20 @@ class NodeContentWidget(QWidget):
         label = QLabel()
         # label.setStyleSheet("background-color: rgba(0,0,0,0%)")
         # label.setAttribute(Qt.WA_TranslucentBackground)
-        pixmap = QPixmap("fish.png")
-        label.setPixmap(pixmap.scaled(60, 60, Qt.KeepAspectRatio))
-        self.layout.addWidget(label)
+
+        pixmap = QPixmap(icon_name if icon_name else ".")
+        label.setPixmap(pixmap.scaled(60, 160, Qt.KeepAspectRatio))
+        self.layout.addWidget(label, alignment=Qt.AlignCenter)
 
 
 class Node:
-    def __init__(self, scene, title="Undefined Node", inputs=0, outputs=0):
+    def __init__(self, scene, title="Undefined Node", inputs=0, outputs=0, icon_name=None):
         self.scene = scene
         self.is_finished = False
 
         self.title = title
 
-        self.content = NodeContentWidget(self)
+        self.content = NodeContentWidget(self, icon_name=icon_name)
         self.graphic_node = GraphicNode(self)
 
         self.scene.add_node(self)
@@ -248,7 +249,7 @@ class InputNode(Node):
     dialog = None
 
     def __init__(self, scene, title=None, inputs=0, outputs=1):
-        Node.__init__(self, scene, title=title, inputs=inputs, outputs=outputs)
+        Node.__init__(self, scene, title=title, inputs=inputs, outputs=outputs, icon_name="icons/input128.png")
         self.is_first = True
 
     def run(self):
@@ -289,7 +290,7 @@ class InputOutputNode(Node):
     required_keys = ["data_frame"]
 
     def __init__(self, scene, title=None):
-        Node.__init__(self, scene, title=title, inputs=1, outputs=1)
+        Node.__init__(self, scene, title=title, inputs=1, outputs=1, icon_name="icons/both128.png")
 
     def run(self):
         if not isinstance(self.fed_data, dict):
@@ -341,7 +342,7 @@ class OutputNode(Node):
     required_keys = ["data_frame"]
 
     def __init__(self, scene, title=None):
-        Node.__init__(self, scene, title=title, inputs=1, outputs=0)
+        Node.__init__(self, scene, title=title, inputs=1, outputs=0, icon_name="icons/output128.png")
         self.is_last = True
 
     def run(self):

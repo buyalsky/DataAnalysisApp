@@ -76,14 +76,14 @@ class MainWindow(QMainWindow):
         nodes_list_visualization = DragList()
         nodes_list_demux = DragList()
 
-        nodes_list_loaders.add_items(['Csv Loader', 'Excel Loader', "Xml Loader", "Deserializer"])
-        nodes_list_preprocess.add_items(['Attribute Remover', 'Filter'])
-        nodes_list_regression.add_items(['Linear Regression'])
-        nodes_list_classification.add_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree'])
-        nodes_list_clustering.add_items(['K-Means', "Hierarchical"])
+        nodes_list_loaders.add_items(['Csv Loader', 'Excel Loader', "Xml Loader", "Deserializer"], icon="icons/input24.png")
+        nodes_list_preprocess.add_items(['Attribute Remover', 'Filter'], icon="icons/both24.png")
+        nodes_list_regression.add_items(['Linear Regression'], icon="icons/both24.png")
+        nodes_list_classification.add_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree'], icon="icons/both24.png")
+        nodes_list_clustering.add_items(['K-Means', "Hierarchical"], icon="icons/both24.png")
         nodes_list_visualization.add_items(["Text output", "Scatter plot", "Pie Chart", "Predictor", "Serializer",
-                                            "Simple Plot", "Histogram", "Csv Saver"])
-        nodes_list_demux.add_items(["1x2 Demux", "1x3 Demux", "1x4 Demux", "1x5 Demux"])
+                                            "Simple Plot", "Histogram", "Csv Saver"], icon="icons/output24.png")
+        nodes_list_demux.add_items(["1x2 Demux", "1x3 Demux", "1x4 Demux", "1x5 Demux"], icon="icons/demux.png")
 
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
