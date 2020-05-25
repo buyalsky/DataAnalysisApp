@@ -225,6 +225,7 @@ class Filter(InputOutputNode):
         self.check_boxes = []
         self.df = self.fed_data["data_frame"]
         data_types = dict(self.df.dtypes)
+        self.filtered_columns = []
 
         for i in range(len(self.df.columns)):
             if "int" in str(data_types[self.df.columns[i]]) or "float" in str(data_types[self.df.columns[i]]):
@@ -294,6 +295,7 @@ class Filter(InputOutputNode):
 
                 scroll_areas_layouts.append(vertical_layout)
                 self.combo_box.addItem("{} ({})".format(self.df.columns[i], data_types[self.df.columns[i]]))
+                self.filtered_columns.append(self.df.columns[i])
 
         self.page = QWidget()
         self.stacked_widget.addWidget(self.page)
@@ -339,39 +341,44 @@ class Filter(InputOutputNode):
         self.stacked_widget.setCurrentIndex(index)
 
     def add_filter(self):
-        # TODO: reset and reset all button related methods
         self.stacked_widget.currentWidget().setEnabled(False)
         index = self.combo_box.currentIndex()
         line_from, line_to = self.line_edits[index]
-        filt = (self.df[self.df.columns[index]] > int(line_from.text())) & (
-                self.df[self.df.columns[index]] < int(line_to.text()))
 
-        self.filters[self.stacked_widget.currentIndex()] = (filt, self.check_boxes[index][0].isChecked())
-        print(self.modified_data["data_frame"].head())
+        filt = (self.df[self.filtered_columns[index]] > int(line_from.text())) & (
+                self.df[self.filtered_columns[index]] < int(line_to.text()))
+
+        self.filters[self.stacked_widget.currentIndex()] = (self.check_boxes[index][0].isChecked(), filt)
 
     def apply_filters(self):
-        cumulative_filter = None
-        self.modified_data = self.df
-        for t in self.filters.values():
-            if not t:
-                if t[0]:
-                    cumulative_filter &= ~t[1]
-                else:
-                    cumulative_filter &= t[1]
+        if not self.filters:
+            self.return_file()
+            return
 
-        self.modified_data = self.df[cumulative_filter]
+        filters = list(self.filters.values())
+        cumulative_filter = filters.pop()[1]
+
+        for t in filters:
+            if t[0]:
+                cumulative_filter &= ~t[1]
+            else:
+                cumulative_filter &= t[1]
+
+        self.modified_data["data_frame"] = self.df[cumulative_filter]
 
         print(self.modified_data["data_frame"].head())
+        self.return_file()
 
     def remove_filter(self):
-        try:
-            self.filters[self.stacked_widget.currentIndex()] = None
-        except KeyError:
-            pass
+        self.filters.pop(self.stacked_widget.currentIndex(), None)
+        self.stacked_widget.currentWidget().setEnabled(True)
 
     def remove_all_filters(self):
         for value in self.filters.values():
             value = None
+        self.modified_data["data_frame"] = self.df
+        for i in range(self.stacked_widget.count()):
+            self.stacked_widget.widget(i).setEnabled(True)
 
     # Will be removed soon
     def print_filters(self):

@@ -23,7 +23,13 @@ class GraphicsView(QGraphicsView):
         self.graphic_scene = graphic_scene
         self.parent_widget = parent
 
-        self.initUI()
+        self.setRenderHints(
+            QPainter.Antialiasing | QPainter.HighQualityAntialiasing | QPainter.TextAntialiasing | QPainter.SmoothPixmapTransform)
+
+        self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
+
+        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
+        self.setDragMode(QGraphicsView.RubberBandDrag)
 
         self.setScene(self.graphic_scene)
 
@@ -44,15 +50,6 @@ class GraphicsView(QGraphicsView):
         # listeners
         self._drag_enter_listeners = []
         self._drop_listeners = []
-
-    def initUI(self):
-        self.setRenderHints(
-            QPainter.Antialiasing | QPainter.HighQualityAntialiasing | QPainter.TextAntialiasing | QPainter.SmoothPixmapTransform)
-
-        self.setViewportUpdateMode(QGraphicsView.FullViewportUpdate)
-
-        self.setTransformationAnchor(QGraphicsView.AnchorUnderMouse)
-        self.setDragMode(QGraphicsView.RubberBandDrag)
 
     def dragEnterEvent(self, event):
         for callback in self._drag_enter_listeners:
@@ -235,7 +232,6 @@ class GraphicsView(QGraphicsView):
             for item in self.graphic_scene.selectedItems():
                 if isinstance(item, GraphicEdge):
                     item.edge.remove()
-                # TODO: Take a look at this one later
                 elif hasattr(item, 'node'):
                     item.node.remove()
                     self.parent_widget.parent_window.change_statusbar_text()

@@ -112,11 +112,3 @@ class MainWidget(QWidget):
             event.accept()
         else:
             event.ignore()
-
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-
-    wnd = MainWidget()
-
-    sys.exit(app.exec_())

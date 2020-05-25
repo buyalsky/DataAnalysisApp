@@ -10,7 +10,7 @@ from node import Node, NodeDemux
 
 
 class MainWindow(QMainWindow):
-    settings = QSettings('Burak Dursunlar', 'Data analysis app')
+    ordered_nodes = None
 
     def __init__(self):
         super().__init__()
@@ -31,25 +31,15 @@ class MainWindow(QMainWindow):
 
         # add submenus to a menu
         file_menu = menubar.addMenu('File')
-        edit_menu = menubar.addMenu('Edit')
         help_menu = menubar.addMenu('Help')
 
-        # add actions
-        open_action = file_menu.addAction('Open')
-        save_action = file_menu.addAction('Save')
+        # add an action with a callback
+        file_menu.addAction('Quit', self.destroy)
 
         # add separator
         file_menu.addSeparator()
 
-        # add an action with a callback
-        quit_action = file_menu.addAction('Quit', self.destroy)
-
-        redo_action = QAction('Redo', self)
-        edit_menu.addAction(redo_action)
-
         toolbar = self.addToolBar('File')
-        # toolbar.addAction(open_action)
-        # toolbar.addAction("Save")
 
         toolbar.setMovable(False)
         toolbar.setFloatable(False)
@@ -76,7 +66,8 @@ class MainWindow(QMainWindow):
         nodes_list_visualization = DragList()
         nodes_list_demux = DragList()
 
-        nodes_list_loaders.add_items(['Csv Loader', 'Excel Loader', "Xml Loader", "Deserializer"], icon="icons/input24.png")
+        nodes_list_loaders.add_items(['Csv Loader', 'Excel Loader', "Xml Loader", "Deserializer"],
+                                     icon="icons/input24.png")
         nodes_list_preprocess.add_items(['Attribute Remover', 'Filter'], icon="icons/both24.png")
         nodes_list_regression.add_items(['Linear Regression'], icon="icons/both24.png")
         nodes_list_classification.add_items(['Knn', 'SVM', 'Naive Bayes', 'Decision Tree'], icon="icons/both24.png")
@@ -87,11 +78,9 @@ class MainWindow(QMainWindow):
 
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
 
-        tab_widget = QTabWidget(
-            movable=False,
-            tabPosition=QTabWidget.West,
-            tabShape=QTabWidget.TabShape
-        )
+        tab_widget = QTabWidget()
+        tab_widget.setMovable(False)
+        tab_widget.setTabPosition(QTabWidget.West)
         tab_widget.resize(100, 100)
 
         dock_layout_loaders = QHBoxLayout()
@@ -130,51 +119,11 @@ class MainWindow(QMainWindow):
 
         dock.setWidget(tab_widget)
 
-        # QMessageBox
         help_menu.addAction('About', self.show_about_dialog)
+        # TODO: Give credit for licence owner
+        help_menu.addAction("Credits", self.credits)
         help_menu.addAction("Node List", self.print_paths)
 
-        if self.settings.value('show_warnings', False, type=bool):
-            response = QMessageBox.question(
-                self,
-                'My Text Editor',
-                'This is beta software, do you want to continue?',
-                QMessageBox.Yes | QMessageBox.Abort
-            )
-            if response == QMessageBox.Abort:
-                self.close()
-                sys.exit()
-
-            # custom message box
-
-            splash_screen = QMessageBox()
-            splash_screen.setWindowTitle('My Text Editor')
-            splash_screen.setText('BETA SOFTWARE WARNING!')
-            splash_screen.setInformativeText(
-                'This is very, very beta, '
-                'are you really sure you want to use it?'
-            )
-            splash_screen.setDetailedText(
-                'This editor was written for pedagogical '
-                'purposes, and probably is not fit for real work.'
-            )
-            splash_screen.setWindowModality(Qt.WindowModal)
-            splash_screen.addButton(QMessageBox.Yes)
-            splash_screen.addButton(QMessageBox.Abort)
-            response = splash_screen.exec_()
-            if response == QMessageBox.Abort:
-                self.close()
-                sys.exit()
-
-        # QFileDialog
-        open_action.triggered.connect(self.open_file)
-        save_action.triggered.connect(self.save_file)
-
-        # QFontDialog
-        edit_menu.addAction('Set Font…', self.set_font)
-
-        # Custom dialog
-        edit_menu.addAction('Settings…', self.show_settings)
         self.show()
 
     def print_paths(self):
@@ -244,57 +193,9 @@ class MainWindow(QMainWindow):
     def show_about_dialog(self):
         QMessageBox.about(
             self,
-            "About main_window.py",
+            "About",
             "This is a data analysis app written in PyQt5."
         )
-
-    def open_file(self):
-        filename, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select a text file to open…",
-            QDir.homePath(),
-            'Text Files (*.txt) ;;Python Files (*.py) ;;All Files (*)',
-            'Python Files (*.py)',
-            QFileDialog.DontUseNativeDialog |
-            QFileDialog.DontResolveSymlinks
-        )
-        if filename:
-            try:
-                with open(filename, 'r') as fh:
-                    self.main_widget.setText(fh.read())
-            except Exception as e:
-                QMessageBox.critical(f"Could not load file: {e}")
-
-    def save_file(self):
-        filename, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select the file to save to…",
-            QDir.homePath(),
-            'Text Files (*.txt) ;;Python Files (*.py) ;;All Files (*)'
-        )
-        if filename:
-            try:
-                with open(filename, 'w') as fh:
-                    fh.write(self.main_widget.toPlainText())
-            except Exception as e:
-                QMessageBox.critical(f"Could not save file: {e}")
-
-    def set_font(self):
-        current = self.main_widget.currentFont()
-        font, accepted = QFontDialog.getFont(
-            current,
-            self,
-            options=(
-                    QFontDialog.DontUseNativeDialog |
-                    QFontDialog.MonospacedFonts
-            )
-        )
-        if accepted:
-            self.main_widget.setCurrentFont(font)
-
-    def show_settings(self):
-        settings_dialog = SettingsDialog(self.settings, self)
-        settings_dialog.exec()
 
     def change_statusbar_text(self):
         completed_count = 0
@@ -306,35 +207,12 @@ class MainWindow(QMainWindow):
                 set_of_nodes.add(node)
         self.statusbar_label.setText("{}/{}".format(completed_count, len(self.main_widget.nodes)))
 
-
-class SettingsDialog(QDialog):
-    """Dialog for setting the settings"""
-
-    def __init__(self, settings, parent=None):
-        super().__init__(parent, modal=True)
-        self.setLayout(QFormLayout())
-        self.settings = settings
-        self.layout().addRow(
-            QLabel('<h1>Application Settings</h1>'),
+    def credits(self):
+        QMessageBox.about(
+            self,
+            "Acknowledgements",
+            "I would like to appreciate Freepik and Pixel Perfect for the icons they provided."
         )
-        self.show_warnings_cb = QCheckBox(
-            # checked=settings.get('show_warnings')
-            checked=settings.value('show_warnings', type=bool)
-        )
-        self.layout().addRow("Show Warnings", self.show_warnings_cb)
-
-        self.accept_btn = QPushButton('Ok', clicked=self.accept)
-        self.cancel_btn = QPushButton('Cancel', clicked=self.reject)
-        self.layout().addRow(self.accept_btn, self.cancel_btn)
-
-    def accept(self):
-        # self.settings['show_warnings'] = self.show_warnings_cb.isChecked()
-        self.settings.setValue(
-            'show_warnings',
-            self.show_warnings_cb.isChecked()
-        )
-        print(self.settings.value('show_warnings'))
-        super().accept()
 
 
 if __name__ == '__main__':

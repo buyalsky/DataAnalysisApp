@@ -14,11 +14,6 @@ import xml.etree.ElementTree as ET
 class CsvLoader(InputNode):
     button_box = None
     widget = None
-    label = None
-    label2 = None
-    label3 = None
-    label4 = None
-    label5 = None
     line_edit = None
     push_button = None
     widget1 = None
@@ -43,56 +38,54 @@ class CsvLoader(InputNode):
         self.button_box.setGeometry(QRect(10, 280, 341, 32))
         self.button_box.setOrientation(Qt.Horizontal)
         self.button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
-        self.widget = QWidget(self.dialog)
-        self.widget.setGeometry(QRect(20, 30, 331, 41))
-        self.horizontal_layout = QHBoxLayout(self.widget)
+        widget = QWidget(self.dialog)
+        widget.setGeometry(QRect(20, 30, 331, 41))
+        self.horizontal_layout = QHBoxLayout(widget)
         self.horizontal_layout.setContentsMargins(0, 0, 0, 0)
-        self.label = QLabel(self.widget)
-        self.horizontal_layout.addWidget(self.label)
-        self.line_edit = QLineEdit(self.widget)
+        label = QLabel(widget)
+        self.horizontal_layout.addWidget(label)
+        self.line_edit = QLineEdit(widget)
         self.horizontal_layout.addWidget(self.line_edit)
-        self.push_button = QPushButton(self.widget)
+        self.push_button = QPushButton(widget)
         self.horizontal_layout.addWidget(self.push_button)
         self.widget1 = QWidget(self.dialog)
         self.widget1.setGeometry(QRect(20, 80, 331, 161))
         self.vertical_layout = QVBoxLayout(self.widget1)
         self.vertical_layout.setContentsMargins(0, 0, 0, 0)
         self.horizontal_layout2 = QHBoxLayout()
-        self.label2 = QLabel(self.widget1)
-        self.horizontal_layout2.addWidget(self.label2)
+        label2 = QLabel(self.widget1)
+        self.horizontal_layout2.addWidget(label2)
         self.combo_box = QComboBox(self.widget1)
         self.horizontal_layout2.addWidget(self.combo_box)
         self.vertical_layout.addLayout(self.horizontal_layout2)
         self.horizontal_layout3 = QHBoxLayout()
-        self.label3 = QLabel(self.widget1)
-        self.horizontal_layout3.addWidget(self.label3)
+        label3 = QLabel(self.widget1)
+        self.horizontal_layout3.addWidget(label3)
         self.combo_box2 = QComboBox(self.widget1)
         self.horizontal_layout3.addWidget(self.combo_box2)
         self.vertical_layout.addLayout(self.horizontal_layout3)
         self.horizontal_layout4 = QHBoxLayout()
-        self.label4 = QLabel(self.widget1)
-        self.horizontal_layout4.addWidget(self.label4)
+        label4 = QLabel(self.widget1)
+        self.horizontal_layout4.addWidget(label4)
         self.combo_box3 = QComboBox(self.widget1)
         self.horizontal_layout4.addWidget(self.combo_box3)
         self.vertical_layout.addLayout(self.horizontal_layout4)
         self.horizontal_layout5 = QHBoxLayout()
-        self.label5 = QLabel(self.widget1)
-        self.horizontal_layout5.addWidget(self.label5)
+        label5 = QLabel(self.widget1)
+        self.horizontal_layout5.addWidget(label5)
         self.combo_box4 = QComboBox(self.widget1)
         self.horizontal_layout5.addWidget(self.combo_box4)
         self.vertical_layout.addLayout(self.horizontal_layout5)
-
-        _translate = QCoreApplication.translate
         self.dialog.setWindowTitle("Csv Loader")
-        self.label.setText("Select file")
+        label.setText("Select file")
         self.push_button.setText("Select")
-        self.label2.setText("Separator")
+        label2.setText("Separator")
         self.combo_box.addItems(["Comma", "Semicolon"])
-        self.label3.setText("Thousands Separator")
+        label3.setText("Thousands Separator")
         self.combo_box2.addItems(["Comma", "Dot"])
-        self.label4.setText("Decimal Point Char.")
+        label4.setText("Decimal Point Char.")
         self.combo_box3.addItems(["Dot", "Comma"])
-        self.label5.setText("Encoding")
+        label5.setText("Encoding")
         self.combo_box4.addItems(["utf-8", "utf-16", "utf-32"])
 
         self.button_box.accepted.connect(self.return_file)
@@ -103,9 +96,10 @@ class CsvLoader(InputNode):
 
     def file_select_clicked(self):
         print("clicked")
-        self.fname = QFileDialog.getOpenFileName(QWidget(), "Open File", "C:/", "Csv (*.csv)")
+        file_name = QFileDialog.getOpenFileName(QWidget(), "Open File", "C:/", "Csv (*.csv)")[0]
+        self.line_edit.setText(file_name)
         print("clicked")
-        if not self.fname[0]:
+        if not file_name:
             return
         else:
             self.button_box.button(QDialogButtonBox.Ok).setEnabled(True)
@@ -115,7 +109,7 @@ class CsvLoader(InputNode):
         options = ["," if self.combo_box.currentText() == "Comma" else ";",
                    "," if self.combo_box2.currentText() == "Comma" else ".",
                    "," if self.combo_box3.currentText() == "Comma" else ".", self.combo_box4.currentText()]
-        self.df = pd.read_csv(self.fname[0], sep=options[0], thousands=options[1],
+        self.df = pd.read_csv(self.line_edit.text(), sep=options[0], thousands=options[1],
                               decimal=options[2], encoding=options[3])
 
         print(self.df.dtypes)
@@ -131,9 +125,9 @@ class CsvLoader(InputNode):
             self.is_finished = True
             print("completed")
             self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
-            #order the nodes
+            # order the nodes
             self.graphic_node.scene().scene.parent_widget.parent_window.order_path()
-            #feed the next node
+            # feed the next node
             self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
 
         else:

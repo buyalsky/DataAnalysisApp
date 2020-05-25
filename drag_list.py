@@ -8,10 +8,6 @@ LISTBOX_MIMETYPE = "application/x-item"
 class DragList(QListWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.initUI()
-
-    def initUI(self):
-        # init
         self.setIconSize(QSize(32, 32))
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setDragEnabled(True)
@@ -37,17 +33,17 @@ class DragList(QListWidget):
 
             pixmap = QPixmap(item.data(Qt.UserRole))
 
-            itemData = QByteArray()
-            dataStream = QDataStream(itemData, QIODevice.WriteOnly)
-            dataStream << pixmap
-            dataStream.writeInt(op_code)
-            dataStream.writeQString(item.text())
+            item_data = QByteArray()
+            data_stream = QDataStream(item_data, QIODevice.WriteOnly)
+            data_stream << pixmap
+            data_stream.writeInt(op_code)
+            data_stream.writeQString(item.text())
 
-            mimeData = QMimeData()
-            mimeData.setData(LISTBOX_MIMETYPE, itemData)
+            mime_data = QMimeData()
+            mime_data.setData(LISTBOX_MIMETYPE, item_data)
 
             drag = QDrag(self)
-            drag.setMimeData(mimeData)
+            drag.setMimeData(mime_data)
             drag.setHotSpot(QPoint(pixmap.width() / 2, pixmap.height() / 2))
             drag.setPixmap(pixmap)
 
@@ -55,4 +51,3 @@ class DragList(QListWidget):
 
         except Exception as e:
             Exception(e)
-
