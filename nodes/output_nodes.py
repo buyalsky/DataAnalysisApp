@@ -16,7 +16,7 @@ class TextOutput(OutputNode):
     line_edit = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Text Output")
+        super().__init__(scene, title="Text Output", icon_name="icons/text128.png")
         self.node_type = "visualisation.text"
 
     def setup_ui(self):
@@ -72,7 +72,15 @@ class TextOutput(OutputNode):
 
         k = self.fed_data.keys()
         print("Keys are: {}".format(k))
-        fd = open(directory, "w+")
+        try:
+            fd = open(directory, "w+")
+        except FileNotFoundError as err:
+            QMessageBox.warning(
+                self.scene.parent_widget,
+                "Error while creating report",
+                str(err)
+            )
+            return 
 
         if "data_frame" in k:
             fd.write(str(self.fed_data["data_frame"].describe()))
@@ -82,20 +90,21 @@ class TextOutput(OutputNode):
             from sklearn.metrics import classification_report
 
             model = self.fed_data["model"]
-            X_test, y_test = self.fed_data["test_data"]
+            x_test, y_test = self.fed_data["test_data"]
 
-            y_predicted = model.predict(X_test)
+            y_predicted = model.predict(x_test)
             conf_matrix = confusion_matrix(y_test, y_predicted)
             report = classification_report(y_test, y_predicted)
 
             fd.write("Confusion Matrix:\n")
             fd.write(str(conf_matrix))
-            fd.write("\nAccuracy Score {}".format(model.score(X_test, y_test)))
+            fd.write("\nAccuracy Score {}".format(model.score(x_test, y_test)))
             fd.write("\nClassification Report:\n")
             fd.write(report)
 
         fd.close()
         print("save completed")
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         self.dialog.accept()
 
 
@@ -106,7 +115,7 @@ class Predictor(OutputNode):
     required_keys = ["data_frame", "model", "target_label"]
 
     def __init__(self, scene):
-        super().__init__(scene, title="Predictor")
+        super().__init__(scene, title="Predictor", icon_name="icons/loupe128.png")
 
     def setup_ui(self):
         self.dialog.resize(429, 353)
@@ -154,6 +163,7 @@ class Predictor(OutputNode):
 
         button_box.accepted.connect(self.predict)
         button_box.rejected.connect(self.dialog.reject)
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         QMetaObject.connectSlotsByName(self.dialog)
 
     def predict(self):
@@ -178,7 +188,7 @@ class Serializer(OutputNode):
     line_edit = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Serializer")
+        super().__init__(scene, title="Serializer", icon_name="icons/serializer128.png")
         self.node_type = "visualisation.serializer"
 
     def setup_ui(self):
@@ -233,6 +243,7 @@ class Serializer(OutputNode):
             return
         with open(directory, "wb") as f:
             pickle.dump(self.fed_data, f)
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         self.dialog.accept()
 
     def feed(self, model):
@@ -248,7 +259,7 @@ class SimplePlot(OutputNode):
     scroll_area_widget_contents = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Simple Plot")
+        super().__init__(scene, title="Simple Plot", icon_name="icons/plot128.png")
         self.node_type = "visualisation.simple"
 
     def run(self):
@@ -339,6 +350,7 @@ class SimplePlot(OutputNode):
         for checkbox in self.check_boxes:
             checkbox.clicked.connect(self.checkbox_selected)
 
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         QMetaObject.connectSlotsByName(self.dialog)
 
     def plot_data(self):
@@ -385,7 +397,7 @@ class SimplePlot(OutputNode):
 
 class ScatterPlot(OutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="Scatter Plot")
+        super().__init__(scene, title="Scatter Plot", icon_name="icons/scatter128.png")
         self.node_type = "visualisation.scatter"
 
     def setup_ui(self):
@@ -446,6 +458,7 @@ class ScatterPlot(OutputNode):
         plot_button.clicked.connect(self.plot_data)
         button_box.accepted.connect(self.dialog.accept)
         button_box.rejected.connect(self.dialog.reject)
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         QMetaObject.connectSlotsByName(self.dialog)
 
     def plot_data(self):
@@ -472,7 +485,7 @@ class ScatterPlot(OutputNode):
 
 class PieChart(OutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="Pie Chart")
+        super().__init__(scene, title="Pie Chart", icon_name="icons/pie-chart128.png")
         self.node_type = "visualisation.pie_chart"
 
     def run(self):
@@ -545,6 +558,7 @@ class PieChart(OutputNode):
         plot_button.clicked.connect(self.plot_pie_chart)
         button_box.accepted.connect(self.dialog.accept)
         button_box.rejected.connect(self.dialog.reject)
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         QMetaObject.connectSlotsByName(self.dialog)
 
     def plot_pie_chart(self):
@@ -565,7 +579,7 @@ class PieChart(OutputNode):
 
 class Histogram(OutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="Histogram")
+        super().__init__(scene, title="Histogram", icon_name="icons/histogram128.png")
         self.node_type = "visualisation.histogram"
 
     def run(self):
@@ -638,6 +652,7 @@ class Histogram(OutputNode):
         plot_button.clicked.connect(self.plot_histogram)
         button_box.accepted.connect(self.dialog.accept)
         button_box.rejected.connect(self.dialog.reject)
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         QMetaObject.connectSlotsByName(self.dialog)
 
     def plot_histogram(self):
@@ -662,7 +677,7 @@ class CsvSaver(OutputNode):
     line_edit = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Csv Saver")
+        super().__init__(scene, title="Csv Saver", icon_name="icons/saver128.png")
         self.node_type = "visualisation.csv_saver"
 
     def setup_ui(self):
@@ -708,6 +723,14 @@ class CsvSaver(OutputNode):
         self.line_edit.setText(directory)
 
     def save_file(self):
-        self.fed_data["data_frame"].to_csv(self.line_edit.text())
+        try:
+            self.fed_data["data_frame"].to_csv(self.line_edit.text())
+        except Exception as err:
+            QMessageBox.warning(
+                self.scene.parent_widget,
+                "Error happened",
+                str(err)
+            )
+            return
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         self.dialog.accept()
-

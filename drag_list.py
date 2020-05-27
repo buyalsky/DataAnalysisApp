@@ -3,6 +3,29 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 
 LISTBOX_MIMETYPE = "application/x-item"
+NODES_TO_ICONS = {
+    "Csv Loader": "icons/csv24.png",
+    "Excel Loader": "icons/excel24.png",
+    "Xml Loader": "icons/xml24.png",
+    "Attribute Remover": "icons/preprocessing242.png",
+    "Filter": "icons/filter24.png",
+    "Linear Regression": "icons/linear-reg24.png",
+    "Decision Tree": "icons/decision-tree24.png",
+    "Knn": "icons/classification24.png",
+    "Naive Bayes": "icons/classification24.png",
+    "SVM": "icons/classification24.png",
+    "K-Means": "icons/clustering24.png",
+    "Hierarchical": "icons/clustering24.png",
+    "Csv Saver": "icons/saver24.png",
+    "Serializer": "icons/serializer24.png",
+    "Deserializer": "icons/serializer24.png",
+    "Predictor": "icons/loupe24.png",
+    "Pie Chart": "icons/pie-chart24.png",
+    "Scatter plot": "icons/scatter24.png",
+    "Simple Plot": "icons/plot24.png",
+    "Text output": "icons/text24.png",
+    "Histogram": "icons/histogram24.png"
+}
 
 
 class DragList(QListWidget):
@@ -12,10 +35,10 @@ class DragList(QListWidget):
         self.setSelectionMode(QAbstractItemView.SingleSelection)
         self.setDragEnabled(True)
 
-    def add_items(self, items, icon=None):
-        for item in items:
-            item = QListWidgetItem(item, self)
-            pixmap = QPixmap(icon if icon is not None else ".")
+    def add_items(self, items, icon):
+        for item_name in items:
+            item = QListWidgetItem(item_name, self)
+            pixmap = QPixmap(NODES_TO_ICONS.get(item_name, icon))
             item.setIcon(QIcon(pixmap))
             item.setSizeHint(QSize(32, 32))
 
@@ -29,7 +52,6 @@ class DragList(QListWidget):
         try:
             item = self.currentItem()
             op_code = item.data(Qt.UserRole + 1)
-            # print("dragging item <%d>" % op_code, item)
 
             pixmap = QPixmap(item.data(Qt.UserRole))
 

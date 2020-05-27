@@ -208,11 +208,46 @@ class MainWindow(QMainWindow):
         self.statusbar_label.setText("{}/{}".format(completed_count, len(self.main_widget.nodes)))
 
     def credits(self):
-        QMessageBox.about(
-            self,
-            "Acknowledgements",
-            "I would like to appreciate Freepik and Pixel Perfect for the icons they provided."
-        )
+        self.dialog = QDialog()
+        self.dialog.setModal(True)
+        self.dialog.resize(451, 130)
+        self.dialog.setWindowTitle("Acknowledgements")
+        widget = QWidget(self.dialog)
+        widget.setGeometry(QRect(20, 30, 401, 205))
+        grid_layout = QGridLayout(self.dialog)
+
+        vertical_layout = QVBoxLayout()
+        label = QLabel(self.dialog)
+        vertical_layout.addWidget(label)
+        grid_layout.addLayout(vertical_layout, 0, 0, 0, 0)
+        label.setWordWrap(True)
+        label.setOpenExternalLinks(True)
+
+        label.setText("""
+        <div>Icons made by:
+        <a href="https://www.flaticon.com/authors/flat-icons" title="Flat Icons">Flat Icons</a>, 
+        <a href="https://www.flaticon.com/authors/pixel-perfect" title="Pixel perfect">Pixel perfect</a>, 
+        <a href="https://www.flaticon.com/authors/eucalyp" title="Eucalyp">Eucalyp</a>, 
+        <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a>, 
+        <a href="https://www.flaticon.com/authors/geotatah" title="geotatah">geotatah</a>, 
+        <a href="https://www.flaticon.com/authors/becris" title="Becris">Becris</a>, 
+        <a href="https://www.flaticon.com/free-icon/scatter-graph_2393904" title="surang">surang</a>, 
+        <a href="https://www.flaticon.com/free-icon/csv_2305939" title="iconixar">iconixar</a>,
+        <a href="https://smashicons.com/" title="Smashicons">Smashicons</a>,  
+        <a href="https://www.flaticon.com/free-icon/scatter_1449286" title="Kiranshastry">Kiranshastry</a> 
+        from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+        """)
+
+        label2 = QLabel(self.dialog)
+        label2.setText("I would like to appreciate those authors for the icons they provided.")
+        vertical_layout.addWidget(label2)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Close)
+        button_box.button(QDialogButtonBox.Close).clicked.connect(self.dialog.reject)
+        vertical_layout.addWidget(button_box)
+
+        self.dialog.show()
 
 
 if __name__ == '__main__':

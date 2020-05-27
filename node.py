@@ -225,15 +225,12 @@ class Node:
             self.output_socket.edge.update_positions()
 
     def remove(self):
-        logger.debug("> Removing Node {}".format(self))
-        logger.debug(" - remove all edges from sockets")
         if self.input_socket and self.input_socket.has_edge():
             logger.debug("    - removing from socket: {} edge: {}".format(self.input_socket, self.input_socket.edge))
             self.input_socket.edge.remove()
         if self.output_socket and self.output_socket.has_edge():
             logger.debug("    - removing from socket: {} edge: {}".format(self.output_socket, self.output_socket.edge))
             self.output_socket.edge.remove()
-        logger.debug(" - remove graphic_node")
         self.scene.graphic_scene.removeItem(self.graphic_node)
         self.graphic_node = None
         logger.debug(" - remove node.py from the scene")
@@ -242,18 +239,16 @@ class Node:
             self.scene.parent_widget.nodes.remove(self)
         except ValueError:
             pass
-        logger.debug(" - everything was done.")
 
 
 class InputNode(Node):
     dialog = None
 
-    def __init__(self, scene, title=None, inputs=0, outputs=1):
-        Node.__init__(self, scene, title=title, inputs=inputs, outputs=outputs, icon_name="icons/input128.png")
+    def __init__(self, scene, title=None, inputs=0, outputs=1, icon_name="icons/input128.png"):
+        Node.__init__(self, scene, title=title, inputs=inputs, outputs=outputs, icon_name=icon_name)
         self.is_first = True
 
     def run(self):
-        print("calusuyor")
         self.df = None
         self.dialog = QDialog()
         self.setup_ui()
@@ -289,8 +284,8 @@ class InputOutputNode(Node):
     modified_data = None
     required_keys = ["data_frame"]
 
-    def __init__(self, scene, title=None):
-        Node.__init__(self, scene, title=title, inputs=1, outputs=1, icon_name="icons/both128.png")
+    def __init__(self, scene, title=None, icon_name="icons/both128.png"):
+        Node.__init__(self, scene, title=title, inputs=1, outputs=1, icon_name=icon_name)
 
     def run(self):
         if not isinstance(self.fed_data, dict):
@@ -341,8 +336,8 @@ class OutputNode(Node):
     fed_data = None
     required_keys = ["data_frame"]
 
-    def __init__(self, scene, title=None):
-        Node.__init__(self, scene, title=title, inputs=1, outputs=0, icon_name="icons/output128.png")
+    def __init__(self, scene, title=None, icon_name="icons/output128.png"):
+        Node.__init__(self, scene, title=title, inputs=1, outputs=0, icon_name=icon_name)
         self.is_last = True
 
     def run(self):
@@ -413,13 +408,9 @@ class NodeDemux:
         x = 0 if (position in (LEFT_TOP, LEFT_BOTTOM)) else self.graphic_node.width
 
         if position in (LEFT_BOTTOM, RIGHT_BOTTOM):
-            # start from bottom
-            y = self.graphic_node.height - self.graphic_node.edge_size - self.graphic_node.padding - index * self.socket_spacing
-            # y = self.graphic_node.height // 2
+            y = self.graphic_node.height - self.graphic_node.edge_size - self.graphic_node.padding - index * \
+                self.socket_spacing
         else:
-            # start from top
-            # y = self.graphic_node.title_height + self.graphic_node._padding
-            # + self.graphic_node.edge_size + index * self.socket_spacing
             y = self.graphic_node.height // 2
 
         return [x, y]
@@ -450,4 +441,3 @@ class NodeDemux:
             self.scene.parent_widget.nodes.remove(self)
         except ValueError:
             pass
-        logger.debug(" - everything was done.")

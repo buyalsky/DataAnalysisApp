@@ -1,12 +1,10 @@
-import sys
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
 from nodes.input_nodes import CsvLoader, XmlLoader, ExcelLoader, Deserializer
 from nodes.both_input_and_output import LinearRegression, KmeansClustering, DecisionTree, Knn, SVM, Filter, \
-    AttributeRemover, \
-    NaiveBayesClassify
+    AttributeRemover, NaiveBayesClassify, HierarchicalClustering
 from nodes.output_nodes import SimplePlot, Serializer, Predictor, Histogram, ScatterPlot, TextOutput, PieChart, CsvSaver
 from scene import Scene
 from node import Node, NodeDemux
@@ -14,7 +12,7 @@ from graphics_view import GraphicsView
 
 LISTBOX_MIMETYPE = "application/x-item"
 
-NODE_LOADER = {
+NODES = {
     "Csv Loader": CsvLoader,
     "Excel Loader": ExcelLoader,
     "Attribute Remover": AttributeRemover,
@@ -34,7 +32,8 @@ NODE_LOADER = {
     "Deserializer": Deserializer,
     "Simple Plot": SimplePlot,
     "K-Means": KmeansClustering,
-    "Csv Saver": CsvSaver
+    "Csv Saver": CsvSaver,
+    "Hierarchical": HierarchicalClustering
 }
 
 
@@ -95,10 +94,8 @@ class MainWidget(QWidget):
             mouse_position = event.pos()
             scene_position = self.scene.graphic_scene.views()[0].mapToScene(mouse_position)
 
-            print("GOT DROP: [%d] '%s'" % (op_code, text), "mouse:", mouse_position, "scene:", scene_position)
-
-            if NODE_LOADER.get(text, False):
-                node = NODE_LOADER[text](self.scene)
+            if NODES.get(text, False):
+                node = NODES[text](self.scene)
             elif "Demux" in text:
                 node = NodeDemux(self.scene, inputs=1, outputs=int(text[2]))
             else:

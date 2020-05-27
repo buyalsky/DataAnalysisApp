@@ -20,8 +20,6 @@ class Socket:
         self.index = index
         self.position = position
 
-        logging.debug("Socket -- creating with {} {} for node {}".format(self.index, self.position, self.node))
-
         self.graphic_socket = GraphicSocket(self)
 
         self.graphic_socket.setPos(*self.node.get_socket_position(index, position))
@@ -32,9 +30,7 @@ class Socket:
         return "<Socket %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
 
     def get_socket_position(self):
-        logging.debug("  GSP: {} {} node: {}".format(self.index, self.position, self.node))
         res = self.node.get_socket_position(self.index, self.position)
-        logging.debug("  res {}".format(res))
         return res
 
     def set_edge(self, edge=None):

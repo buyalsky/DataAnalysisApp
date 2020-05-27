@@ -14,7 +14,7 @@ class AttributeRemover(InputOutputNode):
     df = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Attribute Remover")
+        super().__init__(scene, title="Attribute Remover", icon_name="icons/preprocessing128.png")
         self.node_type = "filter.attribute"
 
     def setup_ui(self):
@@ -59,13 +59,11 @@ class AttributeRemover(InputOutputNode):
         for i, checkbox in enumerate(self.check_boxes):
             if checkbox.isChecked():
                 dropped_columns.append(str(self.df.columns[i]))
-                print(checkbox.text())
         if dropped_columns:
             self.modified_data["data_frame"] = self.df.drop(dropped_columns, axis=1)
         print(self.df.head())
 
         self.is_finished = True
-        print("completed")
         self.return_file()
 
 
@@ -77,7 +75,7 @@ class Filter(InputOutputNode):
     check_boxes = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Filter")
+        super().__init__(scene, title="Filter", icon_name="icons/filter128.png")
         self.node_type = "filter.filter"
 
     def setup_ui2(self):
@@ -116,11 +114,6 @@ class Filter(InputOutputNode):
                 label_range_selection.setText("Range Selection")
                 vertical_layout.addWidget(label_range_selection)
 
-                """line = QFrame(contents)
-                line.setFrameShape(QFrame.HLine)
-                line.setFrameShadow(QFrame.Sunken)
-                self.vertical_layout.addWidget(line)"""
-
                 font = QFont()
                 font.setPointSize(10)
                 horizontal_labels = QHBoxLayout()
@@ -152,11 +145,6 @@ class Filter(InputOutputNode):
                 horizontal_line_edits.addWidget(line_to, 40)
                 self.line_edits.append((line_from, line_to))
                 vertical_layout.addLayout(horizontal_line_edits)
-
-                """line = QFrame(contents)
-                line.setFrameShape(QFrame.HLine)
-                line.setFrameShadow(QFrame.Sunken)
-                self.vertical_layout.addWidget(line)"""
 
                 check_box_negate = QCheckBox(contents)
                 check_box_negate.setText("Grab values without this range.")
@@ -280,11 +268,6 @@ class Filter(InputOutputNode):
                 self.line_edits.append((line_from, line_to))
                 vertical_layout.addLayout(horizontal_line_edits)
 
-                """line = QFrame(contents)
-                line.setFrameShape(QFrame.HLine)
-                line.setFrameShadow(QFrame.Sunken)
-                self.vertical_layout.addWidget(line)"""
-
                 check_box_negate = QCheckBox(contents)
                 check_box_negate.setText("Grab values without this range.")
                 vertical_layout.addWidget(check_box_negate, 15)
@@ -305,17 +288,17 @@ class Filter(InputOutputNode):
 
         self.scroll_area.setWidget(self.scrollAreaWidgetContents)
         self.gridLayout.addWidget(self.scroll_area, 1, 0, 1, 1)
-        self.horizontal_layout_button = QHBoxLayout()
-        self.reset_button = QPushButton(self.dialog)
-        self.horizontal_layout_button.addWidget(self.reset_button)
+        horizontal_layout_button = QHBoxLayout()
+        reset_button = QPushButton(self.dialog)
+        horizontal_layout_button.addWidget(reset_button)
         self.reset_all_button = QPushButton(self.dialog)
-        self.horizontal_layout_button.addWidget(self.reset_all_button)
+        horizontal_layout_button.addWidget(self.reset_all_button)
         self.buttonBox = QDialogButtonBox(self.dialog)
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(
             QDialogButtonBox.Apply | QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
-        self.horizontal_layout_button.addWidget(self.buttonBox)
-        self.gridLayout.addLayout(self.horizontal_layout_button, 2, 0, 1, 1)
+        horizontal_layout_button.addWidget(self.buttonBox)
+        self.gridLayout.addLayout(horizontal_layout_button, 2, 0, 1, 1)
 
         self.dialog.setWindowTitle("Filter")
         self.label.setText("Attribute")
@@ -330,7 +313,7 @@ class Filter(InputOutputNode):
         self.combo_box.currentIndexChanged.connect(self.set_visible_scroll_area2)
 
         self.buttonBox.accepted.connect(self.apply_filters)
-        self.buttonBox.rejected.connect(self.print_filters)
+        self.buttonBox.rejected.connect(self.dialog.reject)
         apply_button = self.buttonBox.button(QDialogButtonBox.Apply)
         apply_button.clicked.connect(self.add_filter)
         QMetaObject.connectSlotsByName(self.dialog)
@@ -351,22 +334,20 @@ class Filter(InputOutputNode):
         self.filters[self.stacked_widget.currentIndex()] = (self.check_boxes[index][0].isChecked(), filt)
 
     def apply_filters(self):
-        if not self.filters:
-            self.return_file()
-            return
+        if self.filters:
+            filters = list(self.filters.values())
+            cumulative_filter = filters.pop()[1]
 
-        filters = list(self.filters.values())
-        cumulative_filter = filters.pop()[1]
+            for t in filters:
+                if t[0]:
+                    cumulative_filter &= ~t[1]
+                else:
+                    cumulative_filter &= t[1]
 
-        for t in filters:
-            if t[0]:
-                cumulative_filter &= ~t[1]
-            else:
-                cumulative_filter &= t[1]
+            self.modified_data["data_frame"] = self.df[cumulative_filter]
 
-        self.modified_data["data_frame"] = self.df[cumulative_filter]
+            print(self.modified_data["data_frame"].head())
 
-        print(self.modified_data["data_frame"].head())
         self.return_file()
 
     def remove_filter(self):
@@ -380,16 +361,10 @@ class Filter(InputOutputNode):
         for i in range(self.stacked_widget.count()):
             self.stacked_widget.widget(i).setEnabled(True)
 
-    # Will be removed soon
-    def print_filters(self):
-        print("Printing filters")
-        for i, value in self.filters.items():
-            print("{} {}".format(i, value))
-
 
 class LinearRegression(InputOutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="Linear Regression")
+        super().__init__(scene, title="Linear Regression", icon_name="icons/linear-reg128.png")
 
     def setup_ui(self):
         self.dialog.resize(496, 198)
@@ -476,7 +451,7 @@ class NaiveBayesClassify(InputOutputNode):
     line_edit_2 = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Naive Bayes Classify")
+        super().__init__(scene, title="Naive Bayes Classify", icon_name="icons/classification128.png")
         self.node_type = "supervised.naivebayes"
 
     def setup_ui(self):
@@ -575,10 +550,10 @@ class Knn(InputOutputNode):
     label2 = None
     label3 = None
     line_edit = None
-    line_edit2 = None
+    train_percentage = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Knn")
+        super().__init__(scene, title="Knn", icon_name="icons/classification128.png")
         self.node_type = "supervised.knn"
 
     def setup_ui(self):
@@ -621,14 +596,16 @@ class Knn(InputOutputNode):
         size_policy.setHeightForWidth(self.combo_box.sizePolicy().hasHeightForWidth())
         self.combo_box.setSizePolicy(size_policy)
         self.vertical_layout2.addWidget(self.combo_box)
-        self.line_edit2 = QLineEdit(self.widget)
-        self.line_edit2.setValidator(QIntValidator(0, 100, self.line_edit2))
+        self.train_percentage = QDoubleSpinBox(self.widget)
+        self.train_percentage.setMinimum(0.05)
+        self.train_percentage.setMaximum(0.95)
+        self.train_percentage.setSingleStep(0.05)
         size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
-        size_policy.setHeightForWidth(self.line_edit2.sizePolicy().hasHeightForWidth())
-        self.line_edit2.setSizePolicy(size_policy)
-        self.vertical_layout2.addWidget(self.line_edit2)
+        size_policy.setHeightForWidth(self.train_percentage.sizePolicy().hasHeightForWidth())
+        self.train_percentage.setSizePolicy(size_policy)
+        self.vertical_layout2.addWidget(self.train_percentage)
         self.horizontal_layout.addLayout(self.vertical_layout2)
 
         self.dialog.setWindowTitle("KNN Classifier")
@@ -653,7 +630,7 @@ class Knn(InputOutputNode):
             from sklearn.model_selection import train_test_split
 
             X_train, X_test, y_train, y_test = train_test_split(self.X, self.y,
-                                                                test_size=int(self.line_edit2.text()) / 100,
+                                                                test_size=self.train_percentage.value(),
                                                                 random_state=1, stratify=self.y)
 
             model = KNeighborsClassifier(n_neighbors=self.line_edit.value())
@@ -680,7 +657,7 @@ class Knn(InputOutputNode):
 
 class SVM(InputOutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="SVM")
+        super().__init__(scene, title="SVM", icon_name="icons/classification128.png")
         self.node_type = "supervised.svm"
 
     def setup_ui(self):
@@ -690,10 +667,10 @@ class SVM(InputOutputNode):
         size_policy.setVerticalStretch(0)
         size_policy.setHeightForWidth(self.dialog.sizePolicy().hasHeightForWidth())
         self.dialog.setSizePolicy(size_policy)
-        self.buttonBox = QDialogButtonBox(self.dialog)
-        self.buttonBox.setGeometry(QRect(100, 110, 341, 32))
-        self.buttonBox.setOrientation(Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        button_box = QDialogButtonBox(self.dialog)
+        button_box.setGeometry(QRect(100, 110, 341, 32))
+        button_box.setOrientation(Qt.Horizontal)
+        button_box.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.layoutWidget = QWidget(self.dialog)
         self.layoutWidget.setGeometry(QRect(20, 30, 401, 71))
         self.horizontalLayout = QHBoxLayout(self.layoutWidget)
@@ -713,13 +690,16 @@ class SVM(InputOutputNode):
         size_policy.setHeightForWidth(self.comboBox.sizePolicy().hasHeightForWidth())
         self.comboBox.setSizePolicy(size_policy)
         self.verticalLayout_2.addWidget(self.comboBox)
-        self.lineEdit_2 = QLineEdit(self.layoutWidget)
+        self.train_percentage = QDoubleSpinBox(self.layoutWidget)
+        self.train_percentage.setMinimum(0.05)
+        self.train_percentage.setMaximum(0.95)
+        self.train_percentage.setSingleStep(0.05)
         size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
-        size_policy.setHeightForWidth(self.lineEdit_2.sizePolicy().hasHeightForWidth())
-        self.lineEdit_2.setSizePolicy(size_policy)
-        self.verticalLayout_2.addWidget(self.lineEdit_2)
+        size_policy.setHeightForWidth(self.train_percentage.sizePolicy().hasHeightForWidth())
+        self.train_percentage.setSizePolicy(size_policy)
+        self.verticalLayout_2.addWidget(self.train_percentage)
         self.horizontalLayout.addLayout(self.verticalLayout_2)
 
         self.dialog.setWindowTitle("Support Vector Machine")
@@ -730,8 +710,8 @@ class SVM(InputOutputNode):
         for i in range(len(self.df.columns)):
             self.comboBox.addItem(str(self.df.columns[i]))
 
-        self.buttonBox.accepted.connect(self.apply_svm_classify)
-        self.buttonBox.rejected.connect(self.dialog.reject)
+        button_box.accepted.connect(self.apply_svm_classify)
+        button_box.rejected.connect(self.dialog.reject)
         QMetaObject.connectSlotsByName(self.dialog)
 
     def apply_svm_classify(self):
@@ -744,14 +724,14 @@ class SVM(InputOutputNode):
             from sklearn.model_selection import train_test_split
 
             X_train, X_test, y_train, y_test = train_test_split(self.X, self.y,
-                                                                test_size=int(self.lineEdit_2.text()) / 100,
+                                                                test_size=self.train_percentage.value(),
                                                                 random_state=1, stratify=self.y)
 
             model = SVC(random_state=1)
             model.fit(X_train, y_train)
             print(model.score(X_test, y_test))
         except Exception as e:
-            QMessageBox.about(
+            QMessageBox.warning(
                 self.scene.parent_widget,
                 "Error happened",
                 str(e)
@@ -778,10 +758,10 @@ class DecisionTree(InputOutputNode):
     label2 = None
     label3 = None
     combo_box = None
-    line_edit2 = None
+    train_percentage_input = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Decision Tree Classifier")
+        super().__init__(scene, title="Decision Tree Classifier", icon_name="icons/decision-tree128.png")
         self.node_type = "supervised.decisiontree"
 
     def setup_ui(self):
@@ -813,13 +793,16 @@ class DecisionTree(InputOutputNode):
         size_policy.setHeightForWidth(self.combo_box.sizePolicy().hasHeightForWidth())
         self.combo_box.setSizePolicy(size_policy)
         self.vertical_layout2.addWidget(self.combo_box)
-        self.line_edit2 = QLineEdit(self.layoutWidget)
+        self.train_percentage_input = QLineEdit(self.layoutWidget)
+        self.train_percentage_input.setMinimum(0.05)
+        self.train_percentage_input.setMaximum(0.95)
+        self.train_percentage_input.setSingleStep(0.05)
         size_policy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         size_policy.setHorizontalStretch(0)
         size_policy.setVerticalStretch(0)
-        size_policy.setHeightForWidth(self.line_edit2.sizePolicy().hasHeightForWidth())
-        self.line_edit2.setSizePolicy(size_policy)
-        self.vertical_layout2.addWidget(self.line_edit2)
+        size_policy.setHeightForWidth(self.train_percentage_input.sizePolicy().hasHeightForWidth())
+        self.train_percentage_input.setSizePolicy(size_policy)
+        self.vertical_layout2.addWidget(self.train_percentage_input)
         self.horizontal_layout.addLayout(self.vertical_layout2)
 
         self.dialog.setWindowTitle("Decision Tree Classifier")
@@ -842,7 +825,7 @@ class DecisionTree(InputOutputNode):
             from sklearn.model_selection import train_test_split
 
             X_train, X_test, y_train, y_test = train_test_split(self.X, self.y,
-                                                                test_size=int(self.line_edit2.text()) / 100,
+                                                                test_size=self.train_percentage_input.value(),
                                                                 random_state=1,
                                                                 stratify=self.y)
 
@@ -870,7 +853,7 @@ class DecisionTree(InputOutputNode):
 
 class KmeansClustering(InputOutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="K-Means Clustering")
+        super().__init__(scene, title="K-Means Clustering", icon_name="icons/clustering128.png")
 
     def setup_ui(self):
         self.dialog.resize(451, 130)
@@ -913,7 +896,7 @@ class KmeansClustering(InputOutputNode):
 
 class HierarchicalClustering(InputOutputNode):
     def __init__(self, scene):
-        super().__init__(scene, title="K-Means Clustering")
+        super().__init__(scene, title="Hierarchical Clustering", icon_name="icons/clustering128.png")
 
     def setup_ui(self):
         self.dialog.resize(451, 130)

@@ -1,14 +1,15 @@
 import sys
 import os
 import pickle
+import xml.etree.ElementTree as ET
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import pandas as pd
+
 sys.path.append(os.path.abspath(os.path.join("..")))
 from node import InputNode
-import xml.etree.ElementTree as ET
 
 
 class CsvLoader(InputNode):
@@ -29,7 +30,7 @@ class CsvLoader(InputNode):
     combo_box4 = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Csv Loader")
+        super().__init__(scene, title="Csv Loader", icon_name="icons/csv128.png")
         self.node_type = "loader.csv"
 
     def setup_ui(self):
@@ -144,7 +145,7 @@ class ExcelLoader(InputNode):
     push_button = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Excel Loader")
+        super().__init__(scene, title="Excel Loader", icon_name="icons/excel128.png")
         self.node_type = "loader.excel"
 
     def setup_ui(self):
@@ -204,7 +205,7 @@ class XmlLoader(InputNode):
     buttonBox = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Xml Loader")
+        super().__init__(scene, title="Xml Loader", icon_name="icons/xml128.png")
         self.node_type = "loader.xml"
 
     def setup_ui(self):
@@ -338,7 +339,7 @@ class XmlLoader(InputNode):
         tree = ET.parse(self.fname[0])
         root = tree.getroot()
 
-        #child = root[0]
+        # child = root[0]
         self.options = []
         self.create_tree(root, self.tree_widget)
 
@@ -528,7 +529,7 @@ class JsonLoader(InputNode):
         tree = ET.parse(self.fname[0])
         root = tree.getroot()
 
-        #child = root[0]
+        # child = root[0]
         self.options = []
         self.create_tree(root, self.tree_widget)
 
@@ -574,49 +575,39 @@ class JsonLoader(InputNode):
 
 
 class Deserializer(InputNode):
-    def __init__(self, scene):
-        super().__init__(scene, title="Object Loader")
+    output_object = None
 
-    def setupUi(self):
+    def __init__(self, scene):
+        super().__init__(scene, title="Deserializer", icon_name="icons/serializer128.png")
+
+    def setup_ui(self):
         self.dialog.setObjectName("Dialog")
-        self.dialog.resize(398, 167)
+        self.dialog.resize(405, 127)
         self.buttonBox = QDialogButtonBox(self.dialog)
-        self.buttonBox.setGeometry(QRect(30, 120, 341, 32))
+        self.buttonBox.setGeometry(QRect(30, 80, 341, 32))
         self.buttonBox.setOrientation(Qt.Horizontal)
         self.buttonBox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.buttonBox.setObjectName("buttonBox")
         self.widget = QWidget(self.dialog)
-        self.widget.setGeometry(QRect(10, 30, 381, 81))
+        self.widget.setGeometry(QRect(10, 10, 381, 81))
         self.widget.setObjectName("widget")
         self.verticalLayout = QVBoxLayout(self.widget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout.setObjectName("verticalLayout")
         self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.label = QLabel(self.widget)
-        self.label.setObjectName("label")
-        self.horizontalLayout.addWidget(self.label)
+        label = QLabel(self.widget)
+        self.horizontalLayout.addWidget(label)
         self.lineEdit = QLineEdit(self.widget)
         self.lineEdit.setObjectName("lineEdit")
         self.horizontalLayout.addWidget(self.lineEdit)
         self.pushButton = QPushButton(self.widget)
-        self.pushButton.setObjectName("pushButton")
         self.horizontalLayout.addWidget(self.pushButton)
         self.verticalLayout.addLayout(self.horizontalLayout)
-        self.label_2 = QLabel(self.widget)
-        font = QFont()
-        font.setFamily("DejaVu Sans")
-        font.setPointSize(10)
-        self.label_2.setFont(font)
-        self.label_2.setObjectName("label_2")
-        self.verticalLayout.addWidget(self.label_2)
 
         self.dialog.setWindowTitle("Deserializer")
-        self.label.setText("Select Directory")
+        label.setText("Select Directory")
         self.pushButton.setText("Select")
-        self.label_2.setText("Text file will be saved to the directory you select.")
 
-        self.buttonBox.accepted.connect(self.save_object)
+        self.buttonBox.accepted.connect(self.load_object)
         self.buttonBox.rejected.connect(self.dialog.reject)
         self.pushButton.clicked.connect(self.select_directory)
         QMetaObject.connectSlotsByName(self.dialog)
@@ -642,12 +633,21 @@ class Deserializer(InputNode):
 
     def select_directory(self):
         directory, _ = QFileDialog.getOpenFileName(QMainWindow(), "Save as", QDir.homePath(), "All Files (*.*)",
-                                                        options=QFileDialog.DontResolveSymlinks |
-                                                                QFileDialog.DontUseNativeDialog)
+                                                   options=QFileDialog.DontResolveSymlinks | QFileDialog.
+                                                   DontUseNativeDialog)
         self.lineEdit.setText(directory)
 
-    def save_object(self):
-        with open(self.lineEdit.text(), "rb") as f:
-            self.output_object = pickle.load(f)
+    def load_object(self):
+        try:
+            fd = open(self.lineEdit.text(), "rb")
+        except FileNotFoundError as err:
+            QMessageBox.warning(
+                self.dialog,
+                "Error happened",
+                str(err)
+            )
+            return
+        self.output_object = pickle.load(fd)
+        fd.close()
         print("Object loading completed")
         self.return_file()
