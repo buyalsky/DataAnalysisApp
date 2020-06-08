@@ -1,4 +1,5 @@
 import sys
+import time
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
@@ -11,6 +12,7 @@ from node import Node, NodeDemux
 
 class MainWindow(QMainWindow):
     ordered_nodes = None
+    dialog = None
 
     def __init__(self):
         super().__init__()
@@ -120,7 +122,6 @@ class MainWindow(QMainWindow):
         dock.setWidget(tab_widget)
 
         help_menu.addAction('About', self.show_about_dialog)
-        # TODO: Give credit for licence owner
         help_menu.addAction("Credits", self.credits)
         help_menu.addAction("Node List", self.print_paths)
 
@@ -149,17 +150,17 @@ class MainWindow(QMainWindow):
 
         self.append_nodes_by_order(first_node, self.ordered_nodes[0])
 
-    def append_nodes_by_order(self, node, l):
+    def append_nodes_by_order(self, node, lst):
         if isinstance(node, Node):
-            l.append(node)
+            lst.append(node)
             if node.is_last:
                 return
         while True:
-            if not l[-1].output_socket.has_edge() and not l[-1].is_last:
+            if not lst[-1].output_socket.has_edge() and not lst[-1].is_last:
                 QMessageBox.critical(self, "Warning!", "Every path must end with an output socket!")
                 self.is_ordered = False
                 return
-            next_node = l[-1].output_socket.edge.end_socket.node
+            next_node = lst[-1].output_socket.edge.end_socket.node
             if isinstance(next_node, NodeDemux):
                 copied_lists = []
                 for i in range(len(next_node.output_sockets) - 1):
@@ -167,9 +168,9 @@ class MainWindow(QMainWindow):
 
                 for i, socket in enumerate(next_node.output_sockets):
                     if i == len(next_node.output_sockets) - 1:
-                        self.append_nodes_by_order(socket.edge.end_socket.node, l)
+                        self.append_nodes_by_order(socket.edge.end_socket.node, lst)
                     else:
-                        for item in l:
+                        for item in lst:
                             copied_lists[i].append(item)
                         self.ordered_nodes.append(copied_lists[i])
                         if not socket.has_edge():
@@ -178,7 +179,7 @@ class MainWindow(QMainWindow):
                             return
                         self.append_nodes_by_order(socket.edge.end_socket.node, copied_lists[i])
                 break
-            l.append(next_node)
+            lst.append(next_node)
             if next_node.is_last:
                 break
 
@@ -202,10 +203,11 @@ class MainWindow(QMainWindow):
         set_of_nodes = set()
         for node in self.main_widget.nodes:
             if node not in set_of_nodes:
-                if isinstance(node, Node) and node.is_finished:
-                    completed_count += 1
-                set_of_nodes.add(node)
-        self.statusbar_label.setText("{}/{}".format(completed_count, len(self.main_widget.nodes)))
+                if isinstance(node, Node):
+                    set_of_nodes.add(node)
+                    if node.is_finished:
+                        completed_count += 1
+        self.statusbar_label.setText("{}/{}".format(completed_count, len(set_of_nodes)))
 
     def credits(self):
         self.dialog = QDialog()

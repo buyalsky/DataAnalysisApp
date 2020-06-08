@@ -1,5 +1,6 @@
 from socket_ import *
 import logging
+import time
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -243,14 +244,16 @@ class Node:
 
 class InputNode(Node):
     dialog = None
+    line_edit = None
+    df = None
 
     def __init__(self, scene, title=None, inputs=0, outputs=1, icon_name="icons/input128.png"):
         Node.__init__(self, scene, title=title, inputs=inputs, outputs=outputs, icon_name=icon_name)
         self.is_first = True
 
     def run(self):
-        self.df = None
         self.dialog = QDialog()
+        self.dialog.setModal(True)
         self.setup_ui()
         self.dialog.show()
 
@@ -259,10 +262,8 @@ class InputNode(Node):
 
     def return_file(self):
         self.dialog.accept()
-        print(type(self.df))
         if isinstance(self.df, pd.core.frame.DataFrame):
             self.is_finished = True
-            print("completed")
             self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
             # order the nodes
             self.graphic_node.scene().scene.parent_widget.parent_window.order_path()
@@ -271,11 +272,10 @@ class InputNode(Node):
                 self.graphic_node.scene().scene.parent_widget.parent_window.feed_next_node(self)
         else:
             self.is_finished = False
-            print("not completed")
 
     @property
     def output(self):
-        return {"data_frame": self.df}
+        return {"data_frame": self.df, "input_file_path": self.line_edit.text()}
 
 
 class InputOutputNode(Node):

@@ -1,11 +1,10 @@
 import os
-import sys
 import pickle
+import sys
 
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-
 from matplotlib import pyplot as plt
 
 sys.path.append(os.path.abspath(os.path.join("..")))
@@ -17,7 +16,6 @@ class TextOutput(OutputNode):
 
     def __init__(self, scene):
         super().__init__(scene, title="Text Output", icon_name="icons/text128.png")
-        self.node_type = "visualisation.text"
 
     def setup_ui(self):
         self.dialog.resize(398, 167)
@@ -71,7 +69,6 @@ class TextOutput(OutputNode):
             return
 
         k = self.fed_data.keys()
-        print("Keys are: {}".format(k))
         try:
             fd = open(directory, "w+")
         except FileNotFoundError as err:
@@ -80,12 +77,16 @@ class TextOutput(OutputNode):
                 "Error while creating report",
                 str(err)
             )
-            return 
+            return
 
         if "data_frame" in k:
+            fd.write("DATA FRAME INFO:\n\n")
+            if "input_file_path" in k:
+                fd.write("Path of input file: {}\n\n".format(self.fed_data["input_file_path"]))
             fd.write(str(self.fed_data["data_frame"].describe()))
+            fd.write("\n\n")
 
-        if "model" in k and "test_data" in k:
+        if "model" in k and "test_data" in k and "classification_type" in k:
             from sklearn.metrics import confusion_matrix
             from sklearn.metrics import classification_report
 
@@ -96,14 +97,26 @@ class TextOutput(OutputNode):
             conf_matrix = confusion_matrix(y_test, y_predicted)
             report = classification_report(y_test, y_predicted)
 
+            fd.write("CLASSIFICATION RESULTS:\n\n")
+            fd.write("Classification algorithm: {}\n".format(self.fed_data["classification_type"]))
             fd.write("Confusion Matrix:\n")
             fd.write(str(conf_matrix))
-            fd.write("\nAccuracy Score {}".format(model.score(x_test, y_test)))
-            fd.write("\nClassification Report:\n")
+            fd.write("\n\nAccuracy Score {}".format(model.score(x_test, y_test)))
+            fd.write("\n\nClassification Report:\n")
             fd.write(report)
 
+        elif "data_frame" in k and "clustering_algorithm" in k and "target_label" in k:
+            fd.write("CLUSTERING RESULTS:\n\n")
+            fd.write("Clustering algorithm: {}\n".format(self.fed_data["clustering_algorithm"]))
+            length = len(self.fed_data["data_frame"][self.fed_data["target_label"]])
+            fd.write("Number of clusters: {}\n\n".format(len(self.fed_data["data_frame"][self.fed_data["target_label"]]
+                                                             .value_counts())))
+            fd.write("Counts of unique values and percentages:\n")
+            for label, count in self.fed_data["data_frame"][self.fed_data["target_label"]].value_counts().iteritems():
+                fd.write("{}: {} {:.2f}\n".format(label, count, count / length))
+
         fd.close()
-        print("save completed")
+        self.is_finished = True
         self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         self.dialog.accept()
 
@@ -113,6 +126,7 @@ class Predictor(OutputNode):
     result_label = None
     input_widgets = None
     required_keys = ["data_frame", "model", "target_label"]
+    has_categorical_column = False
 
     def __init__(self, scene):
         super().__init__(scene, title="Predictor", icon_name="icons/loupe128.png")
@@ -126,13 +140,14 @@ class Predictor(OutputNode):
         scroll_area_widget_contents.setGeometry(QRect(0, 0, 409, 277))
         form_layout = QFormLayout(scroll_area_widget_contents)
 
-        df = self.fed_data["data_frame"]
+        df = self.fed_data["data_frame"].drop(self.fed_data["target_label"], axis=1)
         target_label = self.fed_data["target_label"]
 
         labels = []
         self.input_widgets = []
 
         self.data_types = dict(df.dtypes)
+        self.has_categorical_column = False
 
         for i in range(len(df.columns)):
             if target_label == str(df.columns[i]):
@@ -140,7 +155,8 @@ class Predictor(OutputNode):
             labels.append(QLabel(scroll_area_widget_contents))
             labels[-1].setText("{} ({})".format(str(df.columns[i]), self.data_types[df.columns[i]]))
             if "object" in str(self.data_types[df.columns[i]]) or "category" in str(self.data_types[df.columns[i]]):
-                # TODO: categorical predictions
+                # TODO: if fed_data has no key called column_transformer then drop the column
+                self.has_categorical_column = True
                 self.input_widgets.append(QComboBox(scroll_area_widget_contents))
                 for item in set(df[df.columns[i]]):
                     self.input_widgets[-1].addItem(str(item))
@@ -168,17 +184,30 @@ class Predictor(OutputNode):
 
     def predict(self):
         v = []
-        df = self.fed_data["data_frame"]
+        df = self.fed_data["data_frame"].drop(self.fed_data["target_label"], axis=1)
         model = self.fed_data["model"]
-        for i, widget in enumerate(self.input_widgets):
-            if "float" in str(self.data_types[df.columns[i]]):
-                v.append(float(widget.text()))
-            elif "int" in str(self.data_types[df.columns[i]]):
-                v.append(float(widget.text()))
-            else:
-                v.append(widget.currentText())
-        result = model.predict([v])
+        if self.has_categorical_column and self.fed_data.get("column_transformer"):
+            d = {}
+            for i, widget in enumerate(self.input_widgets):
+                if "float" in str(self.data_types[df.columns[i]]) or "int" in str(self.data_types[df.columns[i]]):
+                    d[df.columns[i]] = float(widget.text())
+                else:
+                    d[df.columns[i]] = widget.currentText()
+            t = self.fed_data["column_transformer"]
+            import pandas as pd
+            result = model.predict(t.transform(pd.DataFrame([d])))
+
+        else:
+            for i, widget in enumerate(self.input_widgets):
+                if "float" in str(self.data_types[df.columns[i]]) or "int" in str(self.data_types[df.columns[i]]):
+                    v.append(float(widget.text()))
+                else:
+                    v.append(widget.currentText())
+            result = model.predict([v])
+
         self.result_label.setText("Result is: {}".format(result[0]))
+        self.is_finished = True
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
 
     def feed(self, df_or_model):
         self.fed_data = df_or_model
@@ -189,7 +218,6 @@ class Serializer(OutputNode):
 
     def __init__(self, scene):
         super().__init__(scene, title="Serializer", icon_name="icons/serializer128.png")
-        self.node_type = "visualisation.serializer"
 
     def setup_ui(self):
         self.dialog.resize(398, 167)
@@ -219,7 +247,7 @@ class Serializer(OutputNode):
         self.dialog.setWindowTitle("Dialog")
         label.setText("Select Directory")
         push_button.setText("Select")
-        label2.setText("Text file will be saved to the directory you select.")
+        label2.setText("Once serialization complete, binary file will be saved to the directory you select.")
 
         button_box.accepted.connect(self.save_object)
         button_box.rejected.connect(self.dialog.reject)
@@ -228,8 +256,7 @@ class Serializer(OutputNode):
 
     def select_directory(self):
         directory, _ = QFileDialog.getSaveFileName(QMainWindow(), "Save as", QDir.homePath(), "Text files (*.txt)",
-                                                   options=QFileDialog.DontResolveSymlinks | QFileDialog.
-                                                   DontUseNativeDialog)
+                                                   options=QFileDialog.DontResolveSymlinks)
         self.line_edit.setText(directory)
 
     def save_object(self):
@@ -243,6 +270,7 @@ class Serializer(OutputNode):
             return
         with open(directory, "wb") as f:
             pickle.dump(self.fed_data, f)
+        self.is_finished = True
         self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         self.dialog.accept()
 
@@ -260,7 +288,6 @@ class SimplePlot(OutputNode):
 
     def __init__(self, scene):
         super().__init__(scene, title="Simple Plot", icon_name="icons/plot128.png")
-        self.node_type = "visualisation.simple"
 
     def run(self):
         self.dialog = QDialog()
@@ -370,6 +397,8 @@ class SimplePlot(OutputNode):
         plt.tight_layout()
 
         plt.show()
+        self.is_finished = True
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
 
     def x_axis_changed(self, text):
         if text == "Not selected yet":
@@ -398,7 +427,6 @@ class SimplePlot(OutputNode):
 class ScatterPlot(OutputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Scatter Plot", icon_name="icons/scatter128.png")
-        self.node_type = "visualisation.scatter"
 
     def setup_ui(self):
         self.dialog.resize(443, 248)
@@ -481,12 +509,13 @@ class ScatterPlot(OutputNode):
         plt.tight_layout()
 
         plt.show()
+        self.is_finished = True
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
 
 
 class PieChart(OutputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Pie Chart", icon_name="icons/pie-chart128.png")
-        self.node_type = "visualisation.pie_chart"
 
     def run(self):
         if not isinstance(self.fed_data, dict):
@@ -576,11 +605,13 @@ class PieChart(OutputNode):
         plt.tight_layout()
         plt.show()
 
+        self.is_finished = True
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
+
 
 class Histogram(OutputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Histogram", icon_name="icons/histogram128.png")
-        self.node_type = "visualisation.histogram"
 
     def run(self):
         if not isinstance(self.fed_data, dict):
@@ -671,6 +702,8 @@ class Histogram(OutputNode):
         plt.hist(self.df[self.combo_box_column.currentText()], edgecolor='black')
         plt.tight_layout()
         plt.show()
+        self.is_finished = True
+        self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
 
 
 class CsvSaver(OutputNode):
@@ -678,7 +711,6 @@ class CsvSaver(OutputNode):
 
     def __init__(self, scene):
         super().__init__(scene, title="Csv Saver", icon_name="icons/saver128.png")
-        self.node_type = "visualisation.csv_saver"
 
     def setup_ui(self):
         self.dialog.resize(398, 167)
@@ -732,5 +764,6 @@ class CsvSaver(OutputNode):
                 str(err)
             )
             return
+        self.is_finished = True
         self.graphic_node.scene().scene.parent_widget.parent_window.change_statusbar_text()
         self.dialog.accept()
