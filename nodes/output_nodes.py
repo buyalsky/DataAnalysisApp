@@ -244,10 +244,10 @@ class Serializer(OutputNode):
         label2.setFont(font)
         vertical_layout.addWidget(label2)
 
-        self.dialog.setWindowTitle("Dialog")
+        self.dialog.setWindowTitle("Serializer")
         label.setText("Select Directory")
         push_button.setText("Select")
-        label2.setText("Once serialization complete, binary file will be saved to the directory you select.")
+        label2.setText("Once serialization complete, binary file will be saved to \ndirectory you select.")
 
         button_box.accepted.connect(self.save_object)
         button_box.rejected.connect(self.dialog.reject)

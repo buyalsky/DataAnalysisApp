@@ -109,7 +109,7 @@ class CsvLoader(InputNode):
                    "," if self.combo_box3.currentText() == "Comma" else ".", self.combo_box4.currentText()]
         try:
             self.df = pd.read_csv(self.line_edit.text(), sep=options[0], thousands=options[1],
-                              decimal=options[2], encoding=options[3])
+                                  decimal=options[2], encoding=options[3])
         except Exception as err:
             QMessageBox.warning(self.dialog, "Error happened while opening the file", str(err))
             return
@@ -349,7 +349,6 @@ class XmlLoader(InputNode):
                 self.create_sub_tree(child, parent)
                 a.remove(child.tag)
 
-
     def create_sub_tree(self, root, parent):
         for key in root.attrib.keys():
             child = QTreeWidgetItem(parent)
@@ -388,24 +387,24 @@ class Deserializer(InputNode):
         self.buttonBox.setObjectName("buttonBox")
         self.widget = QWidget(self.dialog)
         self.widget.setGeometry(QRect(10, 10, 381, 81))
-        self.widget.setObjectName("widget")
         self.verticalLayout = QVBoxLayout(self.widget)
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
         self.horizontalLayout = QHBoxLayout()
         label = QLabel(self.widget)
         self.horizontalLayout.addWidget(label)
         self.line_edit = QLineEdit(self.widget)
-        self.line_edit.setObjectName("lineEdit")
         self.horizontalLayout.addWidget(self.line_edit)
         self.pushButton = QPushButton(self.widget)
         self.horizontalLayout.addWidget(self.pushButton)
         self.verticalLayout.addLayout(self.horizontalLayout)
 
         self.dialog.setWindowTitle("Deserializer")
-        label.setText("Select Directory")
+        label.setText("Select File")
         self.pushButton.setText("Select")
-
+        self.buttonBox.button(QDialogButtonBox.Ok).setEnabled(False)
         self.buttonBox.accepted.connect(self.load_object)
+        self.line_edit.textChanged.connect(lambda text: self.buttonBox.button(QDialogButtonBox.Ok)
+                                           .setEnabled(bool(text)))
         self.buttonBox.rejected.connect(self.dialog.reject)
         self.pushButton.clicked.connect(self.select_directory)
         QMetaObject.connectSlotsByName(self.dialog)
@@ -438,14 +437,12 @@ class Deserializer(InputNode):
     def load_object(self):
         try:
             fd = open(self.line_edit.text(), "rb")
-        except FileNotFoundError as err:
+            self.output_object = pickle.load(fd)
+            fd.close()
+            self.return_file()
+        except Exception as err:
             QMessageBox.warning(
                 self.dialog,
                 "Error happened",
                 str(err)
             )
-            return
-        self.output_object = pickle.load(fd)
-        fd.close()
-        self.return_file()
-

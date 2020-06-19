@@ -358,7 +358,7 @@ class NaiveBayesClassify(InputOutputNode):
     train_percentage = None
 
     def __init__(self, scene):
-        super().__init__(scene, title="Naive Bayes Classify", icon_name="icons/classification128.png")
+        super().__init__(scene, title="Naive Bayes Classifier", icon_name="icons/classification128.png")
         self.node_type = "supervised.naivebayes"
 
     def setup_ui(self):
@@ -402,7 +402,7 @@ class NaiveBayesClassify(InputOutputNode):
         self.vertical_layout_2.addWidget(self.train_percentage)
         self.horizontal_layout.addLayout(self.vertical_layout_2)
 
-        self.dialog.setWindowTitle("Naive Bayes Classify")
+        self.dialog.setWindowTitle("Naive Bayes Classifier")
         self.label_2.setText("Target selection")
         self.label_3.setText("Test size percentage")
 
@@ -829,17 +829,9 @@ class HierarchicalClustering(InputOutputNode):
                 str(e)
             )
         else:
-            self.modified_data["model"] = model
             self.modified_data["data_frame"]["label"] = clusters
             self.modified_data["data_frame"]["label"] = self.modified_data["data_frame"]["label"].astype("category")
             self.modified_data["target_label"] = "label"
             self.modified_data["clustering_algorithm"] = "Agglomerative Clustering"
             self.is_finished = True
             self.return_file()
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    pencere = AttributeRemover()
-
-    sys.exit(app.exec_())
