@@ -1,15 +1,15 @@
-import sys
 import os
 import pickle
+import sys
 import xml.etree.ElementTree as ET
 
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
 import pandas as pd
-
-sys.path.append(os.path.abspath(os.path.join("..")))
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 from node import InputNode
+
+sys.path.append("..")
 
 
 class CsvLoader(InputNode):

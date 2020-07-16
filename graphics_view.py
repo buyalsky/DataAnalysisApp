@@ -1,11 +1,12 @@
-from PyQt5.QtWidgets import *
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 import logging
 
-from socket_ import GraphicSocket
-from edge import GraphicEdge
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
+
 from edge import Edge
+from edge import GraphicEdge
+from socket_ import GraphicSocket
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

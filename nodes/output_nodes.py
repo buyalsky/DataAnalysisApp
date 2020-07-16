@@ -1,4 +1,3 @@
-import os
 import pickle
 import sys
 
@@ -7,8 +6,9 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from matplotlib import pyplot as plt
 
-sys.path.append(os.path.abspath(os.path.join("..")))
 from node import OutputNode
+
+sys.path.append("..")
 
 
 class TextOutput(OutputNode):
@@ -427,6 +427,29 @@ class SimplePlot(OutputNode):
 class ScatterPlot(OutputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Scatter Plot", icon_name="icons/scatter128.png")
+
+    def run(self):
+        if not isinstance(self.fed_data, dict):
+            QMessageBox.warning(
+                self.scene.parent_widget,
+                "Warning!",
+                "You need to complete preceding nodes first!"
+            )
+            return
+        else:
+            k = self.fed_data.keys()
+            for requirement in self.required_keys:
+                if requirement not in k:
+                    QMessageBox.warning(
+                        self.scene.parent_widget,
+                        "Warning!",
+                        "This node does not match with its previous node!"
+                    )
+                    return
+        self.dialog = QDialog()
+        self.dialog.setWindowFlags(Qt.WindowTitleHint)
+        self.setup_ui()
+        self.dialog.show()
 
     def setup_ui(self):
         self.dialog.resize(443, 248)

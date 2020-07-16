@@ -1,8 +1,8 @@
-from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-
 import logging
+
+from PyQt5.QtCore import *
+from PyQt5.QtGui import *
+from PyQt5.QtWidgets import *
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)

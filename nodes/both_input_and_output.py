@@ -5,8 +5,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-sys.path.append(os.path.abspath(os.path.join("..")))
 from node import InputOutputNode
+
+sys.path.append("..")
 
 
 class AttributeRemover(InputOutputNode):
