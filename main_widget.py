@@ -1,7 +1,3 @@
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-from PyQt5.QtWidgets import *
-
 from graphics_view import GraphicsView
 from node import Node, NodeDemux
 from nodes.both_input_and_output import LinearRegression, KmeansClustering, DecisionTree, Knn, SVM, Filter, \
@@ -9,6 +5,15 @@ from nodes.both_input_and_output import LinearRegression, KmeansClustering, Deci
 from nodes.input_nodes import CsvLoader, XmlLoader, ExcelLoader, Deserializer
 from nodes.output_nodes import SimplePlot, Serializer, Predictor, Histogram, ScatterPlot, TextOutput, PieChart, CsvSaver
 from scene import Scene
+
+try:
+    from PyQt5.QtCore import *
+    from PyQt5.QtGui import *
+    from PyQt5.QtWidgets import *
+except ImportError:
+    from PySide2.QtCore import *
+    from PySide2.QtGui import *
+    from PySide2.QtWidgets import *
 
 LISTBOX_MIMETYPE = "application/x-item"
 
