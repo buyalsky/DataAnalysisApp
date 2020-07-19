@@ -5,13 +5,13 @@ without coding or programming experience.
 
 There is another great available open source alternative that lets you apply complex Data mining and ML applications called [Weka](https://www.cs.waikato.ac.nz/ml/weka/).
 
-Unlike Weka, Data Analysor is more beginner oriented. It has less features and configurations for the sake of simplicity that comes with less control.
+Unlike Weka, Data Analysor is more beginner oriented. It has less features and configurations for the sake of simplicity that often comes with less control.
 
 ## Prerequisites
 This app requires Python 3.6 or above.
 
 Also you need to have following dependencies installed:
-* Pyqt5
+* PyQt5 or PySide2
 * Pandas
 * Scikit-learn
 * Matplotlib

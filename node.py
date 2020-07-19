@@ -2,7 +2,7 @@ import logging
 
 import pandas as pd
 
-from socket_ import Socket, LEFT_BOTTOM, LEFT_TOP, RIGHT_BOTTOM, RIGHT_TOP
+from socket_ import Socket, SocketPosition
 
 try:
     from PyQt5.QtCore import *
@@ -203,9 +203,9 @@ class Node:
         self.output_socket = None
 
         if inputs:
-            self.input_socket = Socket(node=self, index=0, position=LEFT_BOTTOM)
+            self.input_socket = Socket(node=self, index=0, position=SocketPosition.LEFT)
         if outputs:
-            self.output_socket = Socket(node=self, index=0, position=RIGHT_TOP)
+            self.output_socket = Socket(node=self, index=0, position=SocketPosition.RIGHT)
 
     def __hash__(self):
         return id(self)
@@ -224,7 +224,8 @@ class Node:
         self.graphic_node.setPos(x, y)
 
     def get_socket_position(self, index, position):
-        x = 0 if (position in (LEFT_TOP, LEFT_BOTTOM)) else self.graphic_node.width
+        x = 0 if (position in (SocketPosition.LEFT, SocketPosition.LEFT_TOP, SocketPosition.LEFT_BOTTOM)) else \
+            self.graphic_node.width
         y = self.graphic_node.height // 2
 
         return [x, y]
@@ -399,10 +400,10 @@ class NodeDemux:
         self.output_sockets = []
 
         if inputs:
-            self.input_socket = Socket(node=self, index=0, position=LEFT_TOP)
+            self.input_socket = Socket(node=self, index=0, position=SocketPosition.LEFT)
 
         for i in range(outputs):
-            self.output_sockets.append(Socket(node=self, index=i, position=RIGHT_BOTTOM))
+            self.output_sockets.append(Socket(node=self, index=i, position=SocketPosition.RIGHT_BOTTOM))
 
     def __str__(self):
         return "DemuxNode which contains {} outputs".format(len(self.output_sockets))
@@ -415,9 +416,10 @@ class NodeDemux:
         self.graphic_node.setPos(x, y)
 
     def get_socket_position(self, index, position):
-        x = 0 if (position in (LEFT_TOP, LEFT_BOTTOM)) else self.graphic_node.width
+        x = 0 if (position in (SocketPosition.LEFT, SocketPosition.LEFT_TOP, SocketPosition.LEFT_BOTTOM)) else \
+            self.graphic_node.width
 
-        if position in (LEFT_BOTTOM, RIGHT_BOTTOM):
+        if position in (SocketPosition.RIGHT, SocketPosition.RIGHT_BOTTOM, SocketPosition.RIGHT_TOP):
             y = self.graphic_node.height - self.graphic_node.edge_size - self.graphic_node.padding - index * \
                 self.socket_spacing
         else:

@@ -1,7 +1,7 @@
 import logging
 import math
 
-from socket_ import LEFT_TOP, LEFT_BOTTOM, RIGHT_BOTTOM, RIGHT_TOP
+from socket_ import SocketPosition
 
 try:
     from PyQt5.QtCore import *
@@ -30,7 +30,7 @@ class Edge:
         if self.end_socket is not None:
             self.end_socket.edge = self
 
-        self.graphic_edge = GraphicEdgeCurved(self)
+        self.graphic_edge = GraphicalPath(self)
 
         self.update_positions()
         self.scene.graphic_scene.addItem(self.graphic_edge)
@@ -43,14 +43,14 @@ class Edge:
         source_pos = self.start_socket.get_socket_position()
         source_pos[0] += self.start_socket.node.graphic_node.pos().x()
         source_pos[1] += self.start_socket.node.graphic_node.pos().y()
-        self.graphic_edge.setSource(*source_pos)
+        self.graphic_edge.set_source(*source_pos)
         if self.end_socket is not None:
             end_pos = self.end_socket.get_socket_position()
             end_pos[0] += self.end_socket.node.graphic_node.pos().x()
             end_pos[1] += self.end_socket.node.graphic_node.pos().y()
-            self.graphic_edge.setDestination(*end_pos)
+            self.graphic_edge.set_destination(*end_pos)
         else:
-            self.graphic_edge.setDestination(*source_pos)
+            self.graphic_edge.set_destination(*source_pos)
         self.graphic_edge.update()
 
     def remove_from_sockets(self):
@@ -63,7 +63,6 @@ class Edge:
 
     def remove(self):
         logger.debug(" Removing Edge {}".format(self))
-        logger.debug(" - remove edge from all sockets")
         self.remove_from_sockets()
         self.scene.graphic_scene.removeItem(self.graphic_edge)
         self.graphic_edge = None
@@ -77,7 +76,7 @@ class Edge:
             pass
 
 
-class GraphicEdge(QGraphicsPathItem):
+class GraphicalPath(QGraphicsPathItem):
     def __init__(self, edge, parent=None):
         super().__init__(parent)
 
@@ -97,16 +96,16 @@ class GraphicEdge(QGraphicsPathItem):
 
         self.setZValue(-1)
 
-        self.posSource = [0, 0]
-        self.posDestination = [200, 100]
+        self.pos_source = 0, 0
+        self.pos_destination = 200, 100
 
-    def setSource(self, x, y):
-        self.posSource = [x, y]
+    def set_source(self, x, y):
+        self.pos_source = x, y
 
-    def setDestination(self, x, y):
-        self.posDestination = [x, y]
+    def set_destination(self, x, y):
+        self.pos_destination = x, y
 
-    def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
+    def paint(self, painter, item, widget=None):
         self.setPath(self.calc_path())
 
         if self.edge.end_socket is None:
@@ -123,38 +122,23 @@ class GraphicEdge(QGraphicsPathItem):
         return cutpath.intersects(path)
 
     def calc_path(self):
-        raise NotImplementedError
-
-
-class GraphicEdgeCurved(GraphicEdge):
-    def calc_path(self):
-        s = self.posSource
-        d = self.posDestination
+        s, d = self.pos_source, self.pos_destination
         dist = (d[0] - s[0]) * 0.5
 
-        cpx_s = +dist
-        cpx_d = -dist
-        cpy_s = 0
-        cpy_d = 0
+        cpx_s, cpx_d = +dist, -dist
+        cpy_s, cpy_d = 0, 0
 
         sspos = self.edge.start_socket.position
 
-        if (s[0] > d[0] and sspos in (RIGHT_TOP, RIGHT_BOTTOM)) or (s[0] < d[0] and sspos in (LEFT_BOTTOM, LEFT_TOP)):
+        if (s[0] > d[0] and sspos == SocketPosition.RIGHT) or (s[0] < d[0] and sspos == SocketPosition.LEFT):
             cpx_d *= -1
             cpx_s *= -1
 
-            cpy_d = (
-                (s[1] - d[1]) / math.fabs(
-                    (s[1] - d[1]) if (s[1] - d[1]) != 0 else 0.00001
-                )
-            ) * EDGE_ROUNDNESS
-            cpy_s = (
-                (d[1] - s[1]) / math.fabs(
-                    (d[1] - s[1]) if (d[1] - s[1]) != 0 else 0.00001
-                )
-            ) * EDGE_ROUNDNESS
+            cpy_d = ((s[1] - d[1]) / math.fabs((s[1] - d[1]) if (s[1] - d[1]) != 0 else 0.00001)) * EDGE_ROUNDNESS
+            cpy_s = ((d[1] - s[1]) / math.fabs((d[1] - s[1]) if (d[1] - s[1]) != 0 else 0.00001)) * EDGE_ROUNDNESS
 
-        path = QPainterPath(QPointF(self.posSource[0], self.posSource[1]))
-        path.cubicTo(s[0] + cpx_s, s[1] + cpy_s, d[0] + cpx_d, d[1] + cpy_d, self.posDestination[0], self.posDestination[1])
+        path = QPainterPath(QPointF(self.pos_source[0], self.pos_source[1]))
+        path.cubicTo(s[0] + cpx_s, s[1] + cpy_s, d[0] + cpx_d, d[1] + cpy_d, self.pos_destination[0],
+                     self.pos_destination[1])
 
         return path

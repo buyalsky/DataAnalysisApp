@@ -1,4 +1,4 @@
-from graphics_view import GraphicsView
+from scrollable_field import ScrollableField
 from node import Node, NodeDemux
 from nodes.both_input_and_output import LinearRegression, KmeansClustering, DecisionTree, Knn, SVM, Filter, \
     AttributeRemover, NaiveBayesClassify, HierarchicalClustering
@@ -62,13 +62,13 @@ class MainWidget(QWidget):
         # self.add_nodes()
 
         # create graphics view
-        self.view = GraphicsView(self.scene.graphic_scene, self)
+        self.view = ScrollableField(self.scene.graphic_scene, self)
         self.layout.addWidget(self.view)
 
         self.show()
-        self.scene.addHasBeenModifiedListener(self.set_title)
-        self.scene.addDragEnterListener(self.on_drag_enter)
-        self.scene.addDropListener(self.on_drop)
+        self.scene.add_has_been_modified_listener(self.set_title)
+        self.scene.add_drag_enter_listener(self.on_drag_enter)
+        self.scene.add_drop_listener(self.on_drop)
 
         self._close_event_listeners = []
 

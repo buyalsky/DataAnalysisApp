@@ -1,3 +1,4 @@
+import enum
 import logging
 
 try:
@@ -12,14 +13,19 @@ except ImportError:
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
-LEFT_TOP = 1
-LEFT_BOTTOM = 2
-RIGHT_TOP = 3
-RIGHT_BOTTOM = 4
+
+class SocketPosition(enum.Enum):
+    """Represents whether socket is placed in left or right"""
+    LEFT = 1
+    RIGHT = 2
+    LEFT_TOP = 3
+    LEFT_BOTTOM = 4
+    RIGHT_TOP = 5
+    RIGHT_BOTTOM = 6
 
 
 class Socket:
-    def __init__(self, node, index=0, position=LEFT_TOP):
+    def __init__(self, node, index=0, position=SocketPosition.LEFT):
 
         self.node = node
         self.index = index

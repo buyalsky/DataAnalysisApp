@@ -10,6 +10,7 @@ except ImportError:
     from PySide2.QtWidgets import *
 
 
+# TODO merge GraphicScene and Scene
 class GraphicScene(QGraphicsScene):
     def __init__(self, scene, parent=None):
         super().__init__(parent)
@@ -34,7 +35,7 @@ class GraphicScene(QGraphicsScene):
     def set_graphic_scene(self, width, height):
         self.setSceneRect(-width // 2, -height // 2, width, height)
 
-    def dragMoveEvent(self, QGraphicsSceneDragDropEvent):
+    def dragMoveEvent(self, event):
         pass
 
     def drawBackground(self, painter, rect):
@@ -83,9 +84,6 @@ class Scene:
         self._item_selected_listeners = []
         self._items_deselected_listeners = []
 
-        self.initUI()
-
-    def initUI(self):
         self.graphic_scene = GraphicScene(self)
         self.graphic_scene.set_graphic_scene(self.scene_width, self.scene_height)
 
@@ -101,11 +99,11 @@ class Scene:
     def remove_edge(self, edge):
         self.edges.remove(edge)
 
-    def addDragEnterListener(self, callback):
-        self.graphic_scene.views()[0].addDragEnterListener(callback)
+    def add_drag_enter_listener(self, callback):
+        self.graphic_scene.views()[0].add_drag_enter_listener(callback)
 
-    def addDropListener(self, callback):
-        self.graphic_scene.views()[0].addDropListener(callback)
+    def add_drop_listener(self, callback):
+        self.graphic_scene.views()[0].add_drop_listener(callback)
 
-    def addHasBeenModifiedListener(self, callback):
+    def add_has_been_modified_listener(self, callback):
         self._has_been_modified_listeners.append(callback)

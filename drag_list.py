@@ -54,27 +54,23 @@ class DragList(QListWidget):
             item.setData(Qt.UserRole + 1, 1)
 
     def startDrag(self, *args, **kwargs):
-        try:
-            item = self.currentItem()
-            op_code = item.data(Qt.UserRole + 1)
+        item = self.currentItem()
+        op_code = item.data(Qt.UserRole + 1)
 
-            pixmap = QPixmap(item.data(Qt.UserRole))
+        pixmap = QPixmap(item.data(Qt.UserRole))
 
-            item_data = QByteArray()
-            data_stream = QDataStream(item_data, QIODevice.WriteOnly)
-            data_stream << pixmap
-            data_stream.writeInt(op_code)
-            data_stream.writeQString(item.text())
+        item_data = QByteArray()
+        data_stream = QDataStream(item_data, QIODevice.WriteOnly)
+        data_stream << pixmap
+        data_stream.writeInt(op_code)
+        data_stream.writeQString(item.text())
 
-            mime_data = QMimeData()
-            mime_data.setData(LISTBOX_MIMETYPE, item_data)
+        mime_data = QMimeData()
+        mime_data.setData(LISTBOX_MIMETYPE, item_data)
 
-            drag = QDrag(self)
-            drag.setMimeData(mime_data)
-            drag.setHotSpot(QPoint(pixmap.width() / 2, pixmap.height() / 2))
-            drag.setPixmap(pixmap)
+        drag = QDrag(self)
+        drag.setMimeData(mime_data)
+        drag.setHotSpot(QPoint(pixmap.width() / 2, pixmap.height() / 2))
+        drag.setPixmap(pixmap)
 
-            drag.exec_(Qt.MoveAction)
-
-        except Exception as e:
-            Exception(e)
+        drag.exec_(Qt.MoveAction)
