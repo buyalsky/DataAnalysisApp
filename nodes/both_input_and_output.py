@@ -236,8 +236,6 @@ class Filter(InputOutputNode):
 
             self.modified_data["data_frame"] = self.df[cumulative_filter]
 
-            print(self.modified_data["data_frame"].head())
-
         self.return_file()
 
     def remove_filter(self):

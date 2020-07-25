@@ -124,7 +124,6 @@ class CsvLoader(InputNode):
 
         for column, value in self.df.iteritems():
             if len(set(value)) < 5:
-                print("{} can be categorical".format(column))
                 self.df[column] = self.df[column].astype("category")
 
         if isinstance(self.df, pd.core.frame.DataFrame):
@@ -246,7 +245,6 @@ class XmlLoader(InputNode):
         self.data = {}
         for option in self.selected_options:
             self.data[option.text(0)] = []
-        print(self.data)
 
         tree = ET.parse(self.line_edit.text())
         root = tree.getroot()
@@ -258,9 +256,7 @@ class XmlLoader(InputNode):
                 elif child.tag in [option.text(0) for option in self.selected_options]:
                     self.data[child.tag].append(child.text)
 
-        print(self.data)
         self.df = pd.DataFrame(self.data, columns=[option.text(0) for option in self.selected_options])
-        print(self.df.head(10))
         # convert columns to best possible data type
         for column in self.df:
             none_count = 0
@@ -343,7 +339,6 @@ class XmlLoader(InputNode):
 
     def create_tree(self, root, tree_widget):
         a = set([child.tag for child in root])
-        print(a)
 
         for child in root:
             if not a:
