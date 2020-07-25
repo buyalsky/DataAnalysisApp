@@ -40,17 +40,17 @@ class Edge:
         return "<Edge %s..%s>" % (hex(id(self))[2:5], hex(id(self))[-3:])
 
     def update_positions(self):
-        source_pos = self.start_socket.get_socket_position()
-        source_pos[0] += self.start_socket.node.graphic_node.pos().x()
-        source_pos[1] += self.start_socket.node.graphic_node.pos().y()
-        self.graphic_edge.set_source(*source_pos)
+        source_posx, source_posy = self.start_socket.get_socket_position()
+        source_posx += self.start_socket.node.graphic_node.pos().x()
+        source_posy += self.start_socket.node.graphic_node.pos().y()
+        self.graphic_edge.set_source(source_posx, source_posy)
         if self.end_socket is not None:
-            end_pos = self.end_socket.get_socket_position()
-            end_pos[0] += self.end_socket.node.graphic_node.pos().x()
-            end_pos[1] += self.end_socket.node.graphic_node.pos().y()
-            self.graphic_edge.set_destination(*end_pos)
+            end_posx, end_posy = self.end_socket.get_socket_position()
+            end_posx += self.end_socket.node.graphic_node.pos().x()
+            end_posy += self.end_socket.node.graphic_node.pos().y()
+            self.graphic_edge.set_destination(end_posx, end_posy)
         else:
-            self.graphic_edge.set_destination(*source_pos)
+            self.graphic_edge.set_destination(source_posx, source_posy)
         self.graphic_edge.update()
 
     def remove_from_sockets(self):
@@ -105,7 +105,7 @@ class GraphicalPath(QGraphicsPathItem):
     def set_destination(self, x, y):
         self.pos_destination = x, y
 
-    def paint(self, painter, item, widget=None):
+    def paint(self, painter, graphics_item, widget=None):
         self.setPath(self.calc_path())
 
         if self.edge.end_socket is None:

@@ -58,19 +58,19 @@ class GraphicNode(QGraphicsItem):
                 node.update_connected_edges()
 
     def mouseDoubleClickEvent(self, event):
-        self.node.run()
+        try:
+            self.node.run()
+        except NotImplementedError:
+            QMessageBox.warning(self.scene().scene.parent_widget,
+                                "Warning!",
+                                "This node is currently unsupported!")
 
     @property
     def title(self):
         return self._title
 
     def boundingRect(self):
-        return QRectF(
-            0,
-            0,
-            self.width,
-            self.height
-        ).normalized()
+        return QRectF(0, 0, self.width, self.height).normalized()
 
     def init_content(self):
         self.gr_content = QGraphicsProxyWidget(self)
@@ -78,7 +78,7 @@ class GraphicNode(QGraphicsItem):
                                  self.width - 2 * self.edge_size, self.height - 2 * self.edge_size - self.title_height)
         self.gr_content.setWidget(self.content)
 
-    def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
+    def paint(self, painter, graphics_item, widget=None):
         # title
         path_title = QPainterPath()
         path_title.setFillRule(Qt.WindingFill)
@@ -141,11 +141,11 @@ class GraphicsNodeDemux(QGraphicsItem):
             self.height
         ).normalized()
 
-    def paint(self, painter, QStyleOptionGraphicsItem, widget=None):
+    def paint(self, painter, graphics_item, widget=None):
         polygon = QPolygonF()
-        # sol ust
+        # top left
         polygon.append(QPoint(0, self.height // 2 - 10))
-        # sol alt
+        # bottom left
         polygon.append(QPoint(0, self.height // 2 + 10))
         polygon.append(QPoint(50, self.height))
         polygon.append(QPoint(50, 0))
@@ -214,7 +214,7 @@ class Node:
         return "Node {}".format(self.title)
 
     def run(self):
-        print("node")
+        raise NotImplementedError
 
     @property
     def pos(self):
@@ -228,7 +228,7 @@ class Node:
             self.graphic_node.width
         y = self.graphic_node.height // 2
 
-        return [x, y]
+        return x, y
 
     def update_connected_edges(self):
         if self.input_socket and self.input_socket.has_edge():
@@ -238,14 +238,11 @@ class Node:
 
     def remove(self):
         if self.input_socket and self.input_socket.has_edge():
-            logger.debug("    - removing from socket: {} edge: {}".format(self.input_socket, self.input_socket.edge))
             self.input_socket.edge.remove()
         if self.output_socket and self.output_socket.has_edge():
-            logger.debug("    - removing from socket: {} edge: {}".format(self.output_socket, self.output_socket.edge))
             self.output_socket.edge.remove()
         self.scene.graphic_scene.removeItem(self.graphic_node)
         self.graphic_node = None
-        logger.debug(" - remove node.py from the scene")
         self.scene.remove_node(self)
         try:
             self.scene.parent_widget.nodes.remove(self)
@@ -425,7 +422,7 @@ class NodeDemux:
         else:
             y = self.graphic_node.height // 2
 
-        return [x, y]
+        return x, y
 
     def update_connected_edges(self):
         if self.input_socket and self.input_socket.has_edge():
@@ -435,19 +432,14 @@ class NodeDemux:
                 output_socket.edge.update_positions()
 
     def remove(self):
-        logger.debug("> Removing Demux Node {}".format(self))
-        logger.debug(" - remove all edges from sockets")
+        logger.debug("Removing Demux Node {}".format(self))
         if self.input_socket and self.input_socket.has_edge():
-            logger.debug("    - removing from socket: {} edge: {}".format(self.input_socket, self.input_socket.edge))
             self.input_socket.edge.remove()
         for output_socket in self.output_sockets:
             if output_socket and output_socket.has_edge():
-                logger.debug("    - removing from socket: {} edge: {}".format(output_socket, output_socket.edge))
                 output_socket.edge.remove()
-        logger.debug(" - remove graphic_node")
         self.scene.graphic_scene.removeItem(self.graphic_node)
         self.graphic_node = None
-        logger.debug(" - remove node.py from the scene")
         self.scene.remove_node(self)
         try:
             self.scene.parent_widget.nodes.remove(self)

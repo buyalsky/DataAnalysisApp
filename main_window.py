@@ -1,3 +1,4 @@
+import logging
 import sys
 
 from drag_list import DragList
@@ -12,6 +13,9 @@ except ImportError:
     from PySide2.QtCore import *
     from PySide2.QtGui import *
     from PySide2.QtWidgets import *
+
+logger = logging.getLogger()
+logging.basicConfig(level=logging.DEBUG)
 
 
 class MainWindow(QMainWindow):
@@ -127,22 +131,23 @@ class MainWindow(QMainWindow):
 
         help_menu.addAction('About', self.show_about_dialog)
         help_menu.addAction("Credits", self.credits)
-        help_menu.addAction("Node List", self.print_paths)
+        help_menu.addAction("Node List", self._log_path)
 
         self.show()
 
-    def print_paths(self):
-        print(self.main_widget)
-        print(self.main_widget.nodes)
-        print("there is " + str(len(self.main_widget.nodes)) + " nodes exist on the scene")
+    def _log_path(self):
+        logger.debug(self.main_widget)
+        logger.debug(self.main_widget.nodes)
+        logger.debug("There is {} nodes exist on the scene".format(len(self.main_widget.nodes)))
         for edge in self.main_widget.edges:
-            print("from " + edge.start_socket.node.title + " to " + edge.end_socket.node.title)
+            logger.debug("From {} to {}".format(edge.start_socket.node.title, edge.end_socket.node.title))
         self.order_path()
-        print("printing the ordered nodes")
+        logger.debug("Logging the ordered nodes")
         for inner_list in self.ordered_nodes:
+            s = ""
             for path in inner_list:
-                print("{}-".format(path.title), end="")
-            print("")
+                s += "{}-".format(path.title)
+            logger.debug(s)
 
     def order_path(self):
         first_node = None

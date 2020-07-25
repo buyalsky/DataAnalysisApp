@@ -1,6 +1,7 @@
 import sys
 
 from node import InputOutputNode
+from util import unstable_node
 
 try:
     from PyQt5.QtCore import *
@@ -251,6 +252,7 @@ class Filter(InputOutputNode):
             self.stacked_widget.widget(i).setEnabled(True)
 
 
+@unstable_node
 class LinearRegression(InputOutputNode):
     def __init__(self, scene):
         super().__init__(scene, title="Linear Regression", icon_name="icons/linear-reg128.png")
