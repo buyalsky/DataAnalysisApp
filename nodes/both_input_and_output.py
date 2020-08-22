@@ -55,7 +55,7 @@ class AttributeRemover(InputOutputNode):
         push_button.setText("Apply")
         push_button.clicked.connect(self.remove_selected_columns)
         push_button2.setText("Cancel")
-        label.setText("Select the attributes that you want to remove")
+        label.setText("Please select columns to be dropped")
 
         QMetaObject.connectSlotsByName(self.dialog)
 
