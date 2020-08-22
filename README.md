@@ -35,7 +35,19 @@ Simply run main_window.py with your Python 3 interpreter:
 python3 main_window.py
 ```
 
-##### I'll update usage chapter more specifically soon.
+### I'll update usage chapter more specifically soon.
+
+## Screenshots
+![Final](https://user-images.githubusercontent.com/33388526/90983410-9eb84700-e576-11ea-82f2-3ba8bff58d76.png)
+
+<p align="center">
+<img src=https://user-images.githubusercontent.com/33388526/90983459-138b8100-e577-11ea-8134-9e076653dc3d.png>
+</p>
+
+<p align="left">
+  <img src=https://user-images.githubusercontent.com/33388526/93707315-d1356f80-fb35-11ea-9a31-772ba9a3fd21.png />
+  <img src=https://user-images.githubusercontent.com/33388526/90983540-a7f5e380-e577-11ea-8e13-771cffe35971.png />
+</p>
 
 ## License
 Licensed under MIT license, refer [`LICENSE`](LICENSE) for more details.
